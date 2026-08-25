@@ -1,0 +1,16 @@
+# local config / secrets
+config.yaml
+.env
+
+# build output
+bin/
+tmp/
+
+# generated assets
+static/css/app.css
+
+# node
+node_modules/
+
+# templ generated files are committed; nothing to ignore there
+cmd/exp
