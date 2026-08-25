@@ -21,6 +21,7 @@ type Config struct {
 	Env     Env           `mapstructure:"env"`
 	Server  ServerConfig  `mapstructure:"server"`
 	Mongo   MongoConfig   `mapstructure:"mongo"`
+	Redis   RedisConfig   `mapstructure:"redis"`
 	Session SessionConfig `mapstructure:"session"`
 	Google  GoogleConfig  `mapstructure:"google"`
 }
@@ -33,6 +34,11 @@ type ServerConfig struct {
 type MongoConfig struct {
 	URI string `mapstructure:"uri"`
 	DB  string `mapstructure:"db"`
+}
+
+type RedisConfig struct {
+	// URL is the standard redis:// connection string: redis://<user>:<pass>@host:port/<db>
+	URL string `mapstructure:"url"`
 }
 
 type SessionConfig struct {
@@ -65,6 +71,7 @@ func Load() (Config, error) {
 	v.SetDefault("server.base_url", "http://localhost:3000")
 	v.SetDefault("mongo.uri", "mongodb://localhost:27017")
 	v.SetDefault("mongo.db", "project-template")
+	v.SetDefault("redis.url", "redis://localhost:6379/0")
 	v.SetDefault("session.idle", "168h") // 7 days
 
 	// Secrets have no default: bind them explicitly to env vars so
@@ -75,6 +82,7 @@ func Load() (Config, error) {
 	mustBindEnv(v, "server.base_url", "BASE_URL")
 	mustBindEnv(v, "mongo.uri", "MONGO_URI")
 	mustBindEnv(v, "mongo.db", "MONGO_DB")
+	mustBindEnv(v, "redis.url", "REDIS_URL")
 	mustBindEnv(v, "session.secret", "SESSION_SECRET")
 	mustBindEnv(v, "session.idle", "SESSION_IDLE")
 	mustBindEnv(v, "google.client_id", "GOOGLE_CLIENT_ID")

@@ -8,6 +8,7 @@
 #   server.base_url      -> BASE_URL
 #   mongo.uri            -> MONGO_URI
 #   mongo.db             -> MONGO_DB
+#   redis.url            -> REDIS_URL
 #   session.secret       -> SESSION_SECRET
 #   session.idle         -> SESSION_IDLE
 #   google.client_id     -> GOOGLE_CLIENT_ID
@@ -23,6 +24,11 @@ server:
 mongo:
   uri: mongodb://localhost:27017
   db: project-template
+
+# Local dev: docker compose up -d starts a matching redis instance.
+# Sessions and CSRF state live here.
+redis:
+  url: redis://localhost:6379/0
 
 session:
   # Generate with: openssl rand -base64 32
