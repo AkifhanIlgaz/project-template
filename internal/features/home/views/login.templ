@@ -1,0 +1,19 @@
+package views
+
+// A plain <a> rather than an hx-get: the destination is a 307 to Google's
+// consent screen, which htmx would try to follow via XHR and swap into the
+// page instead of letting the browser navigate there.
+templ Login() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<title>Login</title>
+			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+		</head>
+		<body>
+			<h1>Giriş yap</h1>
+			<a href="/auth/google">Google ile devam et</a>
+		</body>
+	</html>
+}
