@@ -9,14 +9,16 @@ import (
 	"github.com/gofiber/fiber/v3"
 	fsession "github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/gofiber/storage/redis/v3"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 const userKey = "user"
 
 // User is the snapshot stored in the session on login: enough to render
 // nav/UI and authorize requests without a Mongo round-trip on every request.
+// ID mirrors the Mongo _id of the persisted user record.
 type User struct {
-	ID    string
+	ID    bson.ObjectID
 	Email string
 	Roles []string
 }
