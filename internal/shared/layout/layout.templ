@@ -1,0 +1,31 @@
+// Package layout holds the page shell shared across features: the <head>
+// boilerplate (htmx, the CSRF meta tag its helper reads) and <body> wrapper.
+package layout
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/components/themetoggle"
+
+templ Base(title string, csrfToken string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="csrf-token" content={ csrfToken }/>
+			<title>{ title }</title>
+			<!-- No defer/async: must set [data-theme] before first paint to avoid a flash of the wrong theme. -->
+			<script src="/static/js/theme-toggle.js"></script>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+			<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+			<link rel="stylesheet" href="/static/css/app.css"/>
+			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+			<script src="/static/js/htmx-helpers.js"></script>
+		</head>
+		<body class="min-h-screen bg-background text-foreground">
+			<div class="absolute right-4 top-4 z-10">
+				@themetoggle.Toggle()
+			</div>
+			{ children... }
+		</body>
+	</html>
+}

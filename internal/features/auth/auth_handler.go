@@ -8,6 +8,7 @@ import (
 	"github.com/AkifhanIlgaz/project-template/internal/features/user"
 	"github.com/AkifhanIlgaz/project-template/internal/platform/csrf"
 	"github.com/AkifhanIlgaz/project-template/internal/platform/session"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/htmx"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/adaptor"
 	"github.com/gorilla/sessions"
@@ -115,10 +116,7 @@ func (h *AuthHandler) Callback(c fiber.Ctx) error {
 }
 
 // Logout is a POST since it has a side effect (destroying the session), and
-// so it's called via hx-post from the Me page. htmx follows a plain 3xx
-// redirect via XHR and swaps the target page's body in as a fragment, which
-// renders wrong for a full page like Login — the HX-Redirect header instead
-// tells htmx to do a real browser navigation.
+// so it's called via hx-post from the Me page.
 func (h *AuthHandler) Logout(c fiber.Ctx) error {
 	if err := session.Logout(c); err != nil {
 		return fmt.Errorf("auth: logout: %w", err)
@@ -128,10 +126,5 @@ func (h *AuthHandler) Logout(c fiber.Ctx) error {
 		return fmt.Errorf("auth: rotate csrf: %w", err)
 	}
 
-	if c.Get("HX-Request") == "true" {
-		c.Set("HX-Redirect", "/login")
-		return nil
-	}
-
-	return c.Redirect().To("/login")
+	return htmx.Redirect(c, "/login")
 }

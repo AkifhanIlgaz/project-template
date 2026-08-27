@@ -1,0 +1,77 @@
+package card
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3  — React compound API'sinin templ karşılığı.
+//
+// Anatomi:
+//
+//	@(Props{})
+//		@Header() {
+//			@Title() { Başlık }
+//			@Description() { Açıklama }
+//		}
+//		@Content() { ... }
+//		@Footer() { ... }
+
+type Variant string
+
+const (
+	VariantDefault     Variant = "default"
+	VariantSecondary   Variant = "secondary"
+	VariantTertiary    Variant = "tertiary"
+	VariantTransparent Variant = "transparent"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantDefault)
+	}
+
+	return string(v)
+}
+
+type Props struct {
+	Variant Variant // default: default
+	Attrs   templ.Attributes
+}
+
+templ Card(p Props, tw ...string) {
+	<div
+		class={ utils.Cn("card", "card--"+p.Variant.String(), tw) }
+		data-slot="card"
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Header(tw ...string) {
+	<div class={ utils.Cn("card__header", tw) } data-slot="card-header">
+		{ children... }
+	</div>
+}
+
+templ Title(tw ...string) {
+	<h3 class={ utils.Cn("card__title", tw) } data-slot="card-title">
+		{ children... }
+	</h3>
+}
+
+templ Description(tw ...string) {
+	<p class={ utils.Cn("card__description", tw) } data-slot="card-description">
+		{ children... }
+	</p>
+}
+
+templ Content(tw ...string) {
+	<div class={ utils.Cn("card__content", tw) } data-slot="card-content">
+		{ children... }
+	</div>
+}
+
+templ Footer(tw ...string) {
+	<div class={ utils.Cn("card__footer", tw) } data-slot="card-footer">
+		{ children... }
+	</div>
+}

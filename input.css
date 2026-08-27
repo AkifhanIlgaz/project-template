@@ -1,0 +1,87 @@
+/*
+ * Mirrors @heroui/styles' own dist/index.css (layered theme architecture),
+ * but replaces its single "import every component" bundle with one
+ * @import per component actually USED by a feature view — not per
+ * component vendored into internal/shared/components/. This is a template
+ * repo, so every HeroUI component's .templ file lives there whether or not
+ * any project built from this template ever renders it; a blanket
+ * `@import "@heroui/styles"` (or one keyed off what's merely vendored)
+ * would pull in CSS for all ~90 components regardless of use — the main
+ * way this file balloons.
+ * https://github.com/heroui-inc/heroui/blob/v3/packages/styles/README.md
+ */
+@layer theme, base, components, utilities;
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@import "@heroui/styles/base/base.css" layer(base);
+@import "@heroui/styles/base/scrollbar.css" layer(base);
+
+/*
+ * Component styles — kept in sync with actual usage by hand:
+ *   - a feature starts using shared/components/<name> -> add its line here
+ *   - the last feature using it is removed/changed -> remove its line here
+ * Shared/primitive components must come before ones that build on them;
+ * check @heroui/styles' own dist/components/index.css for the required
+ * order, e.g. close-button, description, error-message, field-error, and
+ * label are imported first because other components depend on them.
+ */
+@import "@heroui/styles/components/card.css" layer(components);
+@import "@heroui/styles/components/button.css" layer(components);
+@import "@heroui/styles/components/toggle-button.css" layer(components);
+
+@import "@heroui/styles/themes/default" layer(theme);
+
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/variants";
+
+/*
+ * Tailwind v4 scans these paths for class names to generate. Kept narrow
+ * on purpose — scanning the whole repo (node_modules, .git, vendored
+ * skills, tmp/bin build output) is the other usual way this file ends up
+ * huge. Every class must appear as a full literal string somewhere under
+ * these paths; a class built by concatenation (e.g. "text-" + color) is
+ * invisible to this scanner and either won't render or forces a safelist,
+ * which reintroduces the same bloat.
+ */
+@source "./internal/features";
+@source "./internal/shared/components";
+@source "./internal/shared/layout";
+
+/*
+ * Overrides Tailwind's own --font-sans theme variable, which its preflight
+ * applies to html by default (see node_modules/tailwindcss/preflight.css) —
+ * no separate `body { font-family }` rule needed. Outfit itself is loaded
+ * in internal/shared/layout via Google Fonts.
+ */
+@theme {
+	--font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+/*
+ * Theme overrides — only the knobs actually changed from @heroui/styles'
+ * defaults. Full list: Theme Colors / Layout Tokens section of the README
+ * linked above.
+ */
+:root {
+	--radius: 0.75rem;
+	--field-radius: 0;
+}
+
+/*
+ * internal/shared/components/themetoggle: shows the icon for the theme a
+ * click would switch TO, driven purely by [data-theme] on <html> (set by
+ * static/js/theme-toggle.js) — no JS class-toggling on the button itself.
+ */
+[data-theme-icon="light"] {
+	display: none;
+}
+
+[data-theme="dark"] [data-theme-icon="light"] {
+	display: block;
+}
+
+[data-theme="dark"] [data-theme-icon="dark"] {
+	display: none;
+}

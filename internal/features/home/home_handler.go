@@ -23,7 +23,7 @@ func (h *Handler) RegisterRoutes(app *fiber.App) {
 }
 
 func (h *Handler) Login(c fiber.Ctx) error {
-	return render(c, views.Login())
+	return render(c, views.Login(csrf.Token(c)))
 }
 
 func (h *Handler) Me(c fiber.Ctx) error {

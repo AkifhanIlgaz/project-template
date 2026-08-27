@@ -2,17 +2,16 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  cmd = "templ generate && go build -o ./bin/server ./cmd/server"
+  cmd = "templ generate && npx tailwindcss -i input.css -o static/css/app.css && go build -o ./bin/server ./cmd/server"
   bin = "./bin/server"
   full_bin = "./bin/server"
-  include_ext = ["go", "templ", "html", "yaml"]
+  include_ext = ["go", "templ", "html", "yaml", "css"]
   exclude_ext = ["_templ.go"]
-  exclude_dir = ["tmp", "bin", "static", ".git", ".claude", ".agents"]
+  exclude_dir = ["tmp", "bin", "static", "node_modules", ".git", ".claude", ".agents"]
   exclude_regex = ["_test\\.go"]
   delay = 200
   stop_on_error = true
   send_interrupt = true
-  kill_delay = "2s"
 
 [color]
   main = "magenta"

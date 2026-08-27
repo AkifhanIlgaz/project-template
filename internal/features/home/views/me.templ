@@ -4,27 +4,31 @@ import (
 	"strings"
 
 	"github.com/AkifhanIlgaz/project-template/internal/platform/session"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/button"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/card"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/layout"
 )
 
 templ Me(user session.User, csrfToken string) {
-	<!DOCTYPE html>
-	<html lang="en">
-		<head>
-			<meta charset="UTF-8"/>
-			<meta name="csrf-token" content={ csrfToken }/>
-			<title>Hesabım</title>
-			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
-			<script>
-				document.addEventListener('htmx:configRequest', function (e) {
-					e.detail.headers['X-Csrf-Token'] = document.querySelector('meta[name="csrf-token"]').content;
-				});
-			</script>
-		</head>
-		<body>
-			<h1>Merhaba, { user.Email }</h1>
-			<p>ID: { user.ID.Hex() }</p>
-			<p>Roller: { strings.Join(user.Roles, ", ") }</p>
-			<button hx-post="/auth/logout">Çıkış yap</button>
-		</body>
-	</html>
+	@layout.Base("Hesabım", csrfToken) {
+		@card.Card(card.Props{}) {
+			@card.Header() {
+				@card.Title() {
+					Merhaba, { user.Email }
+				}
+			}
+			@card.Content() {
+				<p>ID: { user.ID.Hex() }</p>
+				<p>Roller: { strings.Join(user.Roles, ", ") }</p>
+			}
+			@card.Footer() {
+				@button.Button(button.Props{
+					Variant: button.VariantDanger,
+					Attrs:   templ.Attributes{"hx-post": "/auth/logout"},
+				}) {
+					Çıkış yap
+				}
+			}
+		}
+	}
 }

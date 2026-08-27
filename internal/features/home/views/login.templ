@@ -1,19 +1,37 @@
 package views
 
+import (
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/card"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/icons"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/layout"
+)
+
 // A plain <a> rather than an hx-get: the destination is a 307 to Google's
 // consent screen, which htmx would try to follow via XHR and swap into the
 // page instead of letting the browser navigate there.
-templ Login() {
-	<!DOCTYPE html>
-	<html lang="en">
-		<head>
-			<meta charset="UTF-8"/>
-			<title>Login</title>
-			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
-		</head>
-		<body>
-			<h1>Giriş yap</h1>
-			<a href="/auth/google">Google ile devam et</a>
-		</body>
-	</html>
+templ Login(csrfToken string) {
+	@layout.Base("Giriş yap", csrfToken) {
+		<div class="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+			<div class="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/20 blur-3xl"></div>
+			@card.Card(card.Props{}, "w-full", "max-w-sm", "gap-6", "p-8") {
+				@card.Header("items-center", "gap-1", "text-center") {
+					<h1 class="text-2xl font-semibold tracking-tight text-foreground">Hoş geldin</h1>
+					@card.Description() {
+						Devam etmek için hesabınla giriş yap
+					}
+				}
+				@card.Content("gap-3") {
+					<a href="/auth/google" class="button button--outline button--lg w-full">
+						@icons.Google()
+						Google ile devam et
+					</a>
+				}
+				@card.Footer("justify-center") {
+					<p class="text-xs text-muted">
+						Devam ederek Kullanım Şartları'nı ve Gizlilik Politikası'nı kabul etmiş olursun.
+					</p>
+				}
+			}
+		</div>
+	}
 }

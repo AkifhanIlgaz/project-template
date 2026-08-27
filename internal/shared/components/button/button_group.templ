@@ -1,0 +1,83 @@
+package button
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — 'ları gruplar; variant/size/isDisabled/fullWidth
+// değerlerini templ context ile içindeki 'lara miras bırakır.
+//
+//	@(Props{Variant: VariantTertiary}) {
+//		@(Props{}) { First }
+//		@(Props{}) {
+//			@Separator()
+//			Second
+//		}
+//	}
+//
+// Separator, ilk buton HARİÇ her 'ın içine (ilk çocuk olarak) konur.
+// React'te miras yalnızca doğrudan çocuk 'lara uygulanır; templ context
+// tüm alt ağaca aktığından gruba gömülü başka yapılardaki 'lar da mirası
+// alır. React'teki isDisabled={false} ile grup disabled'ını tek butonda geri
+// açma override'ı Go zero-value nedeniyle desteklenmez.
+
+type buttonCtxKey int
+
+const buttonKey buttonCtxKey = 0
+
+type GroupOrientation string
+
+const (
+	OrientationHorizontal GroupOrientation = "horizontal"
+	OrientationVertical   GroupOrientation = "vertical"
+)
+
+func (o GroupOrientation) String() string {
+	if o == "" {
+		return string(OrientationHorizontal)
+	}
+
+	return string(o)
+}
+
+type GroupProps struct {
+	Variant     Variant          // boşsa  kendi default'unu (primary) kullanır
+	Size        Size             // boşsa  kendi default'unu (md) kullanır
+	Orientation GroupOrientation // default: horizontal
+	FullWidth   bool
+	IsDisabled  bool
+	Attrs       templ.Attributes
+}
+
+func buttonGroup(ctx context.Context) (Props, bool) {
+	p, ok := ctx.Value(buttonKey).(Props)
+	return p, ok
+}
+
+templ ButtonGroup(p GroupProps, tw ...string) {
+	{{	ctx = context.WithValue(ctx, buttonKey, p) }}
+	<div
+		class={ utils.Cn(
+			"button-group",
+			"button-group--"+p.Orientation.String(),
+			utils.If(p.FullWidth, "button-group--full-width", ""),
+			tw,
+		) }
+		data-slot="button-group"
+		role="group"
+		data-disabled={ utils.BoolStr(p.IsDisabled) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Separator(tw ...string) {
+	<span
+		class={ utils.Cn("button-group__separator", tw) }
+		data-slot="button-group-separator"
+		aria-hidden="true"
+	></span>
+}

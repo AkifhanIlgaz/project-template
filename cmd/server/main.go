@@ -4,6 +4,10 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/AkifhanIlgaz/project-template/internal/config"
 	"github.com/AkifhanIlgaz/project-template/internal/features/auth"
@@ -14,6 +18,7 @@ import (
 	"github.com/AkifhanIlgaz/project-template/internal/platform/session"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/gofiber/fiber/v3/middleware/static"
 )
 
 func main() {
@@ -48,6 +53,7 @@ func main() {
 	app.Use(logger.New())
 	app.Use(session.New(sessionStore))
 	app.Use(csrf.New(cfg, sessionStore))
+	app.Use("/static", static.New("./static"))
 
 	app.Get("/healthz", func(c fiber.Ctx) error {
 		return c.SendString("ok")
@@ -56,7 +62,22 @@ func main() {
 	authHandler.RegisterRoutes(app)
 	home.NewHandler().RegisterRoutes(app)
 
-	if err := app.Listen(":" + cfg.Server.Port); err != nil {
-		log.Fatalf("app.Listen: %v", err)
+	go func() {
+		if err := app.Listen(":" + cfg.Server.Port); err != nil {
+			log.Fatalf("app.Listen: %v", err)
+		}
+	}()
+
+	// air (and any other process manager) sends SIGINT/SIGTERM on rebuild
+	// and expects the port back — without this, app.Listen never returns,
+	// the process lingers past its parent, and the next build fails with
+	// "address already in use".
+	shutdownCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	<-shutdownCtx.Done()
+	stop()
+
+	if err := app.ShutdownWithTimeout(5 * time.Second); err != nil {
+		log.Printf("app.Shutdown: %v", err)
 	}
 }

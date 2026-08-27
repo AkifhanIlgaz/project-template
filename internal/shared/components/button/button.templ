@@ -1,0 +1,91 @@
+package button
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3  — tek parçalı component, compound yapısı yoktur.
+//
+//	@(Props{Variant: VariantPrimary, Size: SizeSm}) { Kaydet }
+//
+// React'e özgü onPress/render props yoktur; event bağlamak için Attrs kullanın
+// (ör. htmx: Attrs: templ.Attributes{"hx-post": "/save"}).
+
+type Variant string
+
+const (
+	VariantPrimary    Variant = "primary"
+	VariantSecondary  Variant = "secondary"
+	VariantTertiary   Variant = "tertiary"
+	VariantDanger     Variant = "danger"
+	VariantDangerSoft Variant = "danger-soft"
+	VariantGhost      Variant = "ghost"
+	VariantOutline    Variant = "outline"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantPrimary)
+	}
+
+	return string(v)
+}
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	if s == "" {
+		return string(SizeMd)
+	}
+
+	return string(s)
+}
+
+type Props struct {
+	Variant    Variant // default: primary
+	Size       Size    // default: md
+	IsIconOnly bool
+	FullWidth  bool
+	IsDisabled bool
+	// IsPending, data-pending="true" basar; CSS pointer-events'i kapatır.
+	IsPending bool
+	Attrs     templ.Attributes
+}
+
+templ Button(p Props, tw ...string) {
+	{{
+	// Group mirası: React Context karşılığı, bkz. button_group.templ.
+	if group, ok := buttonGroup(ctx); ok {
+		if p.Variant == "" {
+			p.Variant = group.Variant
+		}
+		if p.Size == "" {
+			p.Size = group.Size
+		}
+		p.IsDisabled = p.IsDisabled || group.IsDisabled
+		p.FullWidth = p.FullWidth || group.FullWidth
+	}
+
+	}}
+	<button
+		type="button"
+		class={ utils.Cn(
+			"button",
+			"button--"+p.Variant.String(),
+			"button--"+p.Size.String(),
+			utils.If(p.IsIconOnly, "button--icon-only", ""),
+			utils.If(p.FullWidth, "button--full-width", ""),
+			tw,
+		) }
+		data-slot="button"
+		disabled?={ p.IsDisabled }
+		data-pending={ utils.BoolStr(p.IsPending) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</button>
+}

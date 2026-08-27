@@ -1,0 +1,23 @@
+// Package themetoggle renders the light/dark toggle button. All behavior
+// (reading the stored/system preference, flipping [data-theme] on <html>,
+// persisting the choice) lives in static/js/theme-toggle.js and plain CSS
+// attribute selectors — no server round-trip, no htmx involved.
+package themetoggle
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/icons"
+
+templ Toggle() {
+	<button
+		type="button"
+		class="toggle-button toggle-button--ghost toggle-button--icon-only"
+		data-theme-toggle
+		aria-label="Tema değiştir"
+	>
+		<span data-theme-icon="light">
+			@icons.Sun()
+		</span>
+		<span data-theme-icon="dark">
+			@icons.Moon()
+		</span>
+	</button>
+}
