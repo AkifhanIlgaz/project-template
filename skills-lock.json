@@ -71,7 +71,7 @@
       "source": "samber/cc-skills-golang",
       "sourceType": "github",
       "skillPath": "skills/golang-documentation/SKILL.md",
-      "computedHash": "29031dd1bd8caa8deb8f044f09a13b274af0f71c666b3d93ab7426093ff710c8"
+      "computedHash": "79fc5603350281483b8f0a6e49575d00e1cb635326103ffab56d9f253fec62f1"
     },
     "golang-error-handling": {
       "source": "samber/cc-skills-golang",
