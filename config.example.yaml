@@ -34,9 +34,11 @@ session:
   # Generate with: openssl rand -base64 32
   secret: ""
   idle: 168h # 7 days
+  gothic_secret: ""
 
 # Google Cloud Console → APIs & Services → Credentials → OAuth client ID
 # Authorized redirect URI: ${server.base_url}/auth/google/callback
 google:
   client_id: ""
   client_secret: ""
+  callback_url: ""

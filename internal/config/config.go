@@ -45,12 +45,14 @@ type SessionConfig struct {
 	// Secret signs/encrypts the session cookie. Generate with: openssl rand -base64 32
 	Secret string `mapstructure:"secret"`
 	// Idle is how long a session survives without activity before expiring.
-	Idle time.Duration `mapstructure:"idle"`
+	Idle         time.Duration `mapstructure:"idle"`
+	GothicSecret string        `mapstructure:"gothic_secret"`
 }
 
 type GoogleConfig struct {
 	ClientID     string `mapstructure:"client_id"`
 	ClientSecret string `mapstructure:"client_secret"`
+	CallbackURL  string `mapstructure:"callback_url"`
 }
 
 func (c Config) IsProduction() bool {
@@ -85,8 +87,10 @@ func Load() (Config, error) {
 	mustBindEnv(v, "redis.url", "REDIS_URL")
 	mustBindEnv(v, "session.secret", "SESSION_SECRET")
 	mustBindEnv(v, "session.idle", "SESSION_IDLE")
+	mustBindEnv(v, "session.gothic_secret", "GOTHIC_SECRET")
 	mustBindEnv(v, "google.client_id", "GOOGLE_CLIENT_ID")
 	mustBindEnv(v, "google.client_secret", "GOOGLE_CLIENT_SECRET")
+	mustBindEnv(v, "google.callback_url", "GOOGLE_CALLBACK_URL")
 
 	if err := v.ReadInConfig(); err != nil {
 		var notFound viper.ConfigFileNotFoundError
@@ -105,8 +109,12 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("config: session.secret (SESSION_SECRET) is required")
 	}
 
-	if cfg.Google.ClientID == "" || cfg.Google.ClientSecret == "" {
-		return Config{}, fmt.Errorf("config: google.client_id/client_secret (GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET) are required")
+	if cfg.Session.GothicSecret == "" {
+		return Config{}, fmt.Errorf("config: session.gothic_secret (GOTHIC_SECRET) is required")
+	}
+
+	if cfg.Google.ClientID == "" || cfg.Google.ClientSecret == "" || cfg.Google.CallbackURL == "" {
+		return Config{}, fmt.Errorf("config: google.client_id/client_secret/callback_url (GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_CALLBACK_URL) are required")
 	}
 
 	return cfg, nil
