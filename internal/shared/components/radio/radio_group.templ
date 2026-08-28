@@ -1,0 +1,99 @@
+package radio
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 Group — içindeki 'lara variant/name/disabled/invalid ve
+// seçili değeri templ context ile miras bırakır.
+//
+//	@Group(GroupProps{Name: "plan", DefaultValue: "premium"}) {
+//		@Label(LabelProps{}) { Plan selection }
+//		@Description() { Choose the plan that suits you best }
+//		@(Props{Value: "basic"}) { ... }
+//	}
+//
+// Mutual exclusivity native <input type="radio"> + ortak name ile tarayıcıya
+// bırakılır; CSS seçili durumu :has(input:checked) ile okur, bu yüzden JS
+// gerekmez (Checkbox'tan farklı olarak indicator boş bir span'dir, ::before
+// ile çizilir).
+
+type GroupVariant string
+
+const (
+	GroupVariantPrimary   GroupVariant = "primary"
+	GroupVariantSecondary GroupVariant = "secondary"
+)
+
+func (v GroupVariant) String() string {
+	return string(v)
+}
+
+type GroupOrientation string
+
+const (
+	GroupOrientationVertical   GroupOrientation = "vertical"
+	GroupOrientationHorizontal GroupOrientation = "horizontal"
+)
+
+func (o GroupOrientation) String() string {
+	return string(o)
+}
+
+type radioGroupCtxKey int
+
+const radioGroupKey radioGroupCtxKey = 0
+
+type GroupProps struct {
+	Variant     GroupVariant // default: primary
+	Orientation GroupOrientation
+	Name        string
+	// DefaultValue, başlangıçta seçili 'nun Value'su (React'teki defaultValue).
+	DefaultValue string
+	IsDisabled   bool
+	IsInvalid    bool
+	IsRequired   bool
+	Attrs        templ.Attributes
+}
+
+func radioGroup(ctx context.Context) GroupProps {
+	if p, ok := ctx.Value(radioGroupKey).(GroupProps); ok {
+		return p
+	}
+	return GroupProps{}
+}
+
+templ RadioGroup(p GroupProps, tw ...string) {
+	{{
+	if p.Variant == "" {
+		p.Variant = GroupVariantPrimary
+	}
+	if p.Orientation == "" {
+		p.Orientation = GroupOrientationVertical
+	}
+	ctx = context.WithValue(ctx, radioGroupKey, p)
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn("radio-group", "radio-group--"+p.Variant.String(), tw)) }
+		data-slot="radio-group"
+		role="radiogroup"
+		data-orientation={ p.Orientation.String() }
+		if p.IsDisabled {
+			data-disabled="true"
+			aria-disabled="true"
+		}
+		if p.IsInvalid {
+			data-invalid="true"
+			aria-invalid="true"
+		}
+		if p.IsRequired {
+			data-required="true"
+			aria-required="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}

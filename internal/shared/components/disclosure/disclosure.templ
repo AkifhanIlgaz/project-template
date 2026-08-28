@@ -1,0 +1,125 @@
+package disclosure
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — tekil açılır/kapanır bölüm (Accordion'un tek öğeli hali).
+//
+//	@(Props{})
+//		@Heading()
+//			@Trigger(TriggerProps{})
+//				başlık
+//				@Indicator()
+//		@Content()
+//			@Body()
+//				içerik
+//
+// Trigger olarak Button da kullanılabilir: Attrs'a slot="trigger" verin
+// (docs'taki Button slot="trigger" kalıbı); static/js/disclosure.js tıklamayı
+// [slot="trigger"] üzerinden yakalar. Panel animasyonu accordion'daki gibi
+// --disclosure-panel-height değişkenine bağlıdır.
+// React'e özgü isExpanded/onExpandedChange (controlled state) yoktur;
+// başlangıç durumu DefaultExpanded ile verilir.
+
+type disclosureCtxKey int
+
+const disclosureKey disclosureCtxKey = 0
+
+type Props struct {
+	DefaultExpanded bool
+	IsDisabled      bool
+	Attrs           templ.Attributes
+}
+
+type TriggerProps struct {
+	IsDisabled bool
+	Attrs      templ.Attributes
+}
+
+func disclosure(ctx context.Context) Props {
+	if p, ok := ctx.Value(disclosureKey).(Props); ok {
+		return p
+	}
+	return Props{}
+}
+
+templ Disclosure(p Props, tw ...string) {
+	{{ group := disclosureGroup(ctx) }}
+	{{ p.IsDisabled = p.IsDisabled || group.IsDisabled }}
+	{{ ctx = context.WithValue(ctx, disclosureKey, p) }}
+
+	<div
+		class={ utils.Cn("disclosure", tw) }
+		data-slot="disclosure"
+		data-expanded={ utils.BoolStr(p.DefaultExpanded) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Heading(tw ...string) {
+	<h3 class={ utils.Cn("disclosure__heading", tw) } data-slot="disclosure-heading">
+		{ children... }
+	</h3>
+}
+
+templ Trigger(p TriggerProps, tw ...string) {
+	{{ d := disclosure(ctx) }}
+	<button
+		type="button"
+		class={ utils.Cn("disclosure__trigger", tw) }
+		data-slot="disclosure-trigger"
+		slot="trigger"
+		aria-expanded={ utils.BoolStr(d.DefaultExpanded) }
+		disabled?={ d.IsDisabled || p.IsDisabled }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</button>
+}
+
+// Indicator, varsayılan chevron-down ikonunu render eder.
+// Özel ikon için kendi elementinize "disclosure__indicator" class'ını ve
+// data-slot/data-expanded attribute'larını verin.
+templ Indicator(tw ...string) {
+	{{ d := disclosure(ctx) }}
+	<svg
+		class={ utils.Cn("disclosure__indicator", tw) }
+		data-slot="disclosure-indicator"
+		data-expanded={ utils.BoolStr(d.DefaultExpanded) }
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"
+	>
+		<path d="m6 9 6 6 6-6"></path>
+	</svg>
+}
+
+templ Content(tw ...string) {
+	{{ d := disclosure(ctx) }}
+	<div
+		class={ utils.Cn("disclosure__content", tw) }
+		data-slot="disclosure-content"
+		data-expanded={ utils.BoolStr(d.DefaultExpanded) }
+		role="group"
+	>
+		{ children... }
+	</div>
+}
+
+templ Body(tw ...string) {
+	<div class="disclosure__body" data-slot="disclosure-body">
+		<div class={ utils.Cn("disclosure__body-inner", tw) }>
+			{ children... }
+		</div>
+	</div>
+}

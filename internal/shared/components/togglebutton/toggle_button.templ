@@ -1,0 +1,123 @@
+package togglebutton
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 ToggleButton — açık/kapalı (seçili/seçili değil) durumu tutan
+// etkileşimli buton. Tek başına ya da ToggleButtonGroup içinde kullanılır.
+//
+//	@ToggleButton(Props{}) {
+//		@previewIconRaw(iconHeart)
+//		Like
+//	}
+//
+// React'teki isSelected/onChange controlled API'si yoktur; durum DOM'da
+// (data-selected) tutulur ve toggle_button.js ile yönetilir. Başlangıç durumu
+// için DefaultSelected kullanılır. Group içinde ise seçili başlangıç,
+// group'un DefaultSelectedKeys'inde bu 'un ID'sinin bulunmasıyla belirlenir.
+
+type Variant string
+
+const (
+	VariantDefault Variant = "default"
+	VariantGhost   Variant = "ghost"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantDefault)
+	}
+
+	return string(v)
+}
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	if s == "" {
+		return string(SizeMd)
+	}
+
+	return string(s)
+}
+
+type Props struct {
+	// ID, group'ta DefaultSelectedKeys ile eşleşme ve tekil seçim mantığı için
+	// kullanılır. Group içinde her ToggleButton'a benzersiz bir ID verilmelidir.
+	ID              string
+	Variant         Variant // default: default
+	Size            Size    // default: md
+	IsIconOnly      bool
+	DefaultSelected bool
+	IsDisabled      bool
+	// AriaLabel, isIconOnly durumunda erişilebilirlik için önerilir.
+	AriaLabel string
+	Attrs     templ.Attributes
+}
+
+templ ToggleButton(p Props, tw ...string) {
+	{{
+	// Group mirası (bkz. toggle_button_group.templ): size + disabled + seçili
+	// başlangıç değeri context'ten alınır.
+	selected := p.DefaultSelected
+	if group, ok := toggleGroup(ctx); ok {
+		if p.Size == "" {
+			p.Size = group.Size
+		}
+		p.IsDisabled = p.IsDisabled || group.IsDisabled
+		if p.ID != "" && group.selectedKeys[p.ID] {
+			selected = true
+		}
+	}
+	}}
+	<button
+		type="button"
+		class={ utils.Cn(
+			"toggle-button",
+			"toggle-button--"+p.Variant.String(),
+			"toggle-button--"+p.Size.String(),
+			utils.If(p.IsIconOnly, "toggle-button--icon-only", ""),
+			tw,
+		) }
+		data-slot="toggle-button"
+		if p.ID != "" {
+			id={ p.ID }
+		}
+		aria-pressed={ utils.BoolStr(selected) }
+		if selected {
+			data-selected="true"
+		}
+		if p.AriaLabel != "" {
+			aria-label={ p.AriaLabel }
+		}
+		disabled?={ p.IsDisabled }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</button>
+}
+
+// toggleGroup, ToggleButtonGroup context'ini okur (unexported paylaşım).
+type toggleCtxKey int
+
+const toggleGroupKey toggleCtxKey = 0
+
+type groupCtx struct {
+	Size        Size
+	IsDisabled  bool
+	selectedKeys map[string]bool
+}
+
+func toggleGroup(ctx context.Context) (groupCtx, bool) {
+	c, ok := ctx.Value(toggleGroupKey).(groupCtx)
+	return c, ok
+}

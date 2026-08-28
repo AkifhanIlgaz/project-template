@@ -1,0 +1,150 @@
+package progressbar
+
+import (
+	"context"
+	"math"
+	"strconv"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — belirli veya belirsiz (indeterminate) ilerleme.
+//
+//	@(Props{Value: 60}) {
+//		@Label(LabelProps{}) { Loading }
+//		@Output()
+//		@Track() {
+//			@Fill()
+//		}
+//	}
+//
+// IsIndeterminate'te aria-valuenow basılmaz; CSS animasyonu bu durumda devreye
+// girer. Görünür Label yoksa Attrs ile aria-label verin.
+
+type Color string
+
+const (
+	ColorAccent  Color = "accent"
+	ColorDanger  Color = "danger"
+	ColorDefault Color = "default"
+	ColorSuccess Color = "success"
+	ColorWarning Color = "warning"
+)
+
+func (c Color) String() string {
+	return string(c)
+}
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	return string(s)
+}
+
+type Props struct {
+	Value float64
+	// MinValue/MaxValue aralığı belirler; ikisi de sıfırsa 0-100 kabul edilir.
+	MinValue        float64
+	MaxValue        float64
+	IsIndeterminate bool
+	// ValueText, Output'ta ve aria-valuetext'te gösterilecek metni override eder
+	// (React'teki formatOptions karşılığı). Boşsa yüzde yazılır.
+	ValueText string
+	Color     Color // default: accent
+	Size      Size  // default: md
+	Attrs     templ.Attributes
+}
+
+type progressBarCtxKey int
+
+const progressBarStateKey progressBarCtxKey = 0
+
+type progressBarState struct {
+	percentage      float64
+	valueText       string
+	isIndeterminate bool
+}
+
+func progressBarCtx(ctx context.Context) progressBarState {
+	if s, ok := ctx.Value(progressBarStateKey).(progressBarState); ok {
+		return s
+	}
+	return progressBarState{}
+}
+
+templ ProgressBar(p Props, tw ...string) {
+	{{
+	if p.Color == "" {
+		p.Color = ColorAccent
+	}
+	if p.Size == "" {
+		p.Size = SizeMd
+	}
+	if p.MinValue == 0 && p.MaxValue == 0 {
+		p.MaxValue = 100
+	}
+	pct := 0.0
+	if p.MaxValue > p.MinValue {
+		pct = (p.Value - p.MinValue) / (p.MaxValue - p.MinValue) * 100
+	}
+	pct = math.Max(0, math.Min(100, pct))
+	if p.ValueText == "" && !p.IsIndeterminate {
+		p.ValueText = strconv.FormatFloat(math.Round(pct), 'f', -1, 64) + "%"
+	}
+	ctx = context.WithValue(ctx, progressBarStateKey, progressBarState{
+		percentage:      pct,
+		valueText:       p.ValueText,
+		isIndeterminate: p.IsIndeterminate,
+	})
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn(
+			"progress-bar",
+			"progress-bar--"+p.Color.String(),
+			"progress-bar--"+p.Size.String(),
+			tw,
+		)) }
+		data-slot="progress-bar"
+		role="progressbar"
+		if !p.IsIndeterminate {
+			aria-valuenow={ strconv.FormatFloat(p.Value, 'f', -1, 64) }
+			aria-valuetext={ p.ValueText }
+		}
+		aria-valuemin={ strconv.FormatFloat(p.MinValue, 'f', -1, 64) }
+		aria-valuemax={ strconv.FormatFloat(p.MaxValue, 'f', -1, 64) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// Output, root'taki ValueText'i (yoksa yüzdeyi) gösterir.
+templ Output(tw ...string) {
+	<span class={ templ.SafeClass(utils.Cn("progress-bar__output", tw)) } data-slot="progress-bar-output">
+		{ progressBarCtx(ctx).valueText }
+	</span>
+}
+
+templ Track(tw ...string) {
+	<div class={ templ.SafeClass(utils.Cn("progress-bar__track", tw)) } data-slot="progress-bar-track">
+		{ children... }
+	</div>
+}
+
+// Fill, indeterminate'te genişliği CSS animasyonuna bırakır.
+templ Fill(tw ...string) {
+	{{ s := progressBarCtx(ctx) }}
+	<div
+		class={ templ.SafeClass(utils.Cn("progress-bar__fill", tw)) }
+		data-slot="progress-bar-fill"
+		if !s.isIndeterminate {
+			style={ "width: " + strconv.FormatFloat(s.percentage, 'f', -1, 64) + "%" }
+		}
+	></div>
+}

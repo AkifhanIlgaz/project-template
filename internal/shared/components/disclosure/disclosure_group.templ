@@ -1,0 +1,42 @@
+package disclosure
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 Group — birden çok 'ın açık/kapalı durumunu
+// koordine eder; varsayılanda tek öğe açık kalır (allowsMultipleExpanded=false).
+// IsDisabled templ context ile içindeki 'lara miras bırakılır.
+// React'e özgü expandedKeys/onExpandedChange (controlled state) yoktur;
+// başlangıç durumu 'ların DefaultExpanded'ı ile verilir.
+
+type disclosureGroupCtxKey int
+
+const disclosureGroupKey disclosureGroupCtxKey = 0
+
+type GroupProps struct {
+	AllowsMultipleExpanded bool
+	IsDisabled             bool
+	Attrs                  templ.Attributes
+}
+
+func disclosureGroup(ctx context.Context) GroupProps {
+	if p, ok := ctx.Value(disclosureGroupKey).(GroupProps); ok {
+		return p
+	}
+	return GroupProps{}
+}
+
+templ DisclosureGroup(p GroupProps, tw ...string) {
+	{{ ctx = context.WithValue(ctx, disclosureGroupKey, p) }}
+	<div
+		class={ utils.Cn("disclosure-group", tw) }
+		data-slot="disclosure-group"
+		data-allow-multiple-expanded={ utils.BoolStr(p.AllowsMultipleExpanded) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}

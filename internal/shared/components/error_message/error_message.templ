@@ -1,0 +1,11 @@
+package error_message
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3 ErrorMessage — form dışı bağlamlar (TagGroup, Calendar vb.)
+// için düşük seviyeli hata mesajı. Form alanlarında FieldError kullanın.
+templ ErrorMessage(tw ...string) {
+	<span class={ utils.Cn("error-message", tw) } data-slot="error-message">
+		{ children... }
+	</span>
+}

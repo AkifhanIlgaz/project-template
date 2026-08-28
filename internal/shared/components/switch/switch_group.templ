@@ -1,0 +1,70 @@
+package switchui
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 SwitchGroup — birden çok Switch'i dikey (varsayılan) ya da yatay
+// gruplar. IsDisabled değerini içindeki Switch'lere templ context ile bırakır.
+//
+//	@switchui.SwitchGroup(switchui.GroupProps{}) {
+//		@components.Label(components.LabelProps{}) { Preferences }
+//		@switchui.Items() {
+//			@switchui.Switch(switchui.Props{Name: "a"}) { ... }
+//			@switchui.Switch(switchui.Props{Name: "b"}) { ... }
+//		}
+//	}
+
+type Orientation string
+
+const (
+	OrientationVertical   Orientation = "vertical"
+	OrientationHorizontal Orientation = "horizontal"
+)
+
+func (o Orientation) String() string {
+	if o == "" {
+		return string(OrientationVertical)
+	}
+	return string(o)
+}
+
+type switchGroupCtxKey int
+
+const switchGroupKey switchGroupCtxKey = 0
+
+type GroupProps struct {
+	Orientation Orientation // default: vertical
+	IsDisabled  bool
+	Attrs       templ.Attributes
+}
+
+func switchGroup(ctx context.Context) GroupProps {
+	if p, ok := ctx.Value(switchGroupKey).(GroupProps); ok {
+		return p
+	}
+	return GroupProps{}
+}
+
+templ SwitchGroup(p GroupProps, tw ...string) {
+	{{ ctx = context.WithValue(ctx, switchGroupKey, p) }}
+	<div
+		class={ utils.Cn("switch-group", "switch-group--"+p.Orientation.String(), tw) }
+		data-slot="switch-group"
+		role="group"
+		data-orientation={ p.Orientation.String() }
+		data-disabled={ utils.BoolStr(p.IsDisabled) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// Items, gruptaki Switch'leri sarar; yatay/dikey yerleşimi bu kapsayıcı belirler.
+templ Items(tw ...string) {
+	<div class={ utils.Cn("switch-group__items", tw) } data-slot="switch-group-items">
+		{ children... }
+	</div>
+}

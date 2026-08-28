@@ -1,0 +1,92 @@
+package chip
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3  — React compound API'sinin templ karşılığı.
+//
+//	@(Props{Color: ColorSuccess}) {
+//		@Label() { Completed }
+//	}
+//
+// İkonlar doğrudan  children'ı olarak, metin Label içinde verilir.
+
+type Color string
+
+const (
+	ColorDefault Color = "default"
+	ColorAccent  Color = "accent"
+	ColorSuccess Color = "success"
+	ColorWarning Color = "warning"
+	ColorDanger  Color = "danger"
+)
+
+func (c Color) String() string {
+	if c == "" {
+		return string(ColorDefault)
+	}
+
+	return string(c)
+}
+
+type Variant string
+
+const (
+	VariantPrimary   Variant = "primary"
+	VariantSecondary Variant = "secondary"
+	VariantTertiary  Variant = "tertiary"
+	VariantSoft      Variant = "soft"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantPrimary)
+	}
+
+	return string(v)
+}
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	if s == "" {
+		return string(SizeMd)
+	}
+
+	return string(s)
+}
+
+type Props struct {
+	Color   Color   // default: default
+	Variant Variant // default: secondary
+	Size    Size    // default: md
+	Attrs   templ.Attributes
+}
+
+templ Chip(p Props, tw ...string) {
+
+	<span
+		class={ utils.Cn(
+			"chip",
+			"chip--"+p.Color.String(),
+			"chip--"+p.Variant.String(),
+			"chip--"+p.Size.String(),
+			tw,
+		) }
+		data-slot="chip"
+		{ p.Attrs... }
+	>
+		{ children... }
+	</span>
+}
+
+templ Label(tw ...string) {
+	<span class={ utils.Cn("chip__label", tw) } data-slot="chip-label">
+		{ children... }
+	</span>
+}

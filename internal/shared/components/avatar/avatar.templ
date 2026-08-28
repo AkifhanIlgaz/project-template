@@ -1,0 +1,126 @@
+package avatar
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+
+
+type avatarCtxKey int
+
+const avatarRootKey avatarCtxKey = 0
+
+type Color string
+
+const (
+	ColorDefault Color = "default"
+	ColorAccent  Color = "accent"
+	ColorSuccess Color = "success"
+	ColorWarning Color = "warning"
+	ColorDanger  Color = "danger"
+)
+
+func (c Color) String() string {
+	if c == "" {
+		return string(ColorDefault)
+	}
+
+	return string(c)
+}
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	if s == "" {
+		return string(SizeMd)
+	}
+
+	return string(s)
+}
+
+type Variant string
+
+const (
+	VariantDefault Variant = ""
+	VariantSoft    Variant = "soft"
+)
+
+type Props struct {
+	Color   Color // default: default
+	Size    Size  // default: md
+	Variant Variant
+	Attrs   templ.Attributes
+}
+
+func avatarRoot(ctx context.Context) Props {
+	if p, ok := ctx.Value(avatarRootKey).(Props); ok {
+		return p
+	}
+	return Props{Color: ColorDefault}
+}
+
+templ Avatar(p Props, tw ...string) {
+	{{
+	ctx = context.WithValue(ctx, avatarRootKey, p)
+	}}
+	<span
+		class={ utils.Cn(
+			"avatar",
+			"avatar--"+p.Size.String(),
+			utils.If(p.Variant == VariantSoft, "avatar--soft", ""),
+			tw,
+		) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</span>
+}
+
+type ImageProps struct {
+	Src   string
+	Alt   string
+	Attrs templ.Attributes
+}
+
+templ Image(p ImageProps, tw ...string) {
+	<img
+		class={ utils.Cn("avatar__image", tw) }
+		src={ p.Src }
+		alt={ p.Alt }
+		onerror="this.style.display='none'"
+		{ p.Attrs... }
+	/>
+}
+
+type FallbackProps struct {
+	Color Color
+	Attrs templ.Attributes
+}
+
+templ Fallback(p FallbackProps, tw ...string) {
+	{{
+	color := p.Color
+	if color == "" {
+		color = avatarRoot(ctx).Color
+	}
+	}}
+	<span
+		class={ utils.Cn(
+			"avatar__fallback",
+			"avatar__fallback--"+color.String(),
+			tw,
+		) }
+		data-slot="avatar-fallback"
+		{ p.Attrs... }
+	>
+		{ children... }
+	</span>
+}

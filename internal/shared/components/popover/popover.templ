@@ -1,0 +1,128 @@
+package popover
+
+import (
+	"strconv"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — trigger'a bağlı zengin içerik overlay'i.
+//
+//	@(Props{}) {
+//		@Button(ButtonProps{}) { Click me }
+//		@Content(ContentProps{}, "max-w-64") {
+//			@Dialog() {
+//				@Arrow()
+//				@Heading() {  Title }
+//				<p class="mt-2 text-sm text-muted">İçerik</p>
+//			}
+//		}
+//	}
+//
+// Trigger, dropdown'daki gibi root'un content dışındaki ilk buton çocuğudur;
+// buton olmayan özel trigger için Trigger kullanılır. Açma/kapama,
+// konumlandırma ve ok yerleşimi static/js/popover.js'te (data-entering/exiting
+// animasyonları alert_dialog.js'teki afterAnimations'ı kullanır; script sırası
+// layout.templ'de buna göre dizilidir). React'e özgü portal yoktur: content,
+// root'a göre absolute konumlanır.
+
+type Props struct {
+	Attrs templ.Attributes
+}
+
+templ Popover(p Props, tw ...string) {
+	<div class={ templ.SafeClass(utils.Cn("relative w-fit", tw)) } data-slot="popover-root" { p.Attrs... }>
+		{ children... }
+	</div>
+}
+
+// Trigger, buton olmayan özel trigger içeriğini sarar
+// (React'teki <.Trigger> / Pressable karşılığı).
+templ Trigger(tw ...string) {
+	<div
+		class={ templ.SafeClass(utils.Cn("popover__trigger", tw)) }
+		data-slot="popover-trigger"
+		role="button"
+		tabindex="0"
+	>
+		{ children... }
+	</div>
+}
+
+type Placement string
+
+const (
+	PlacementTop    Placement = "top"
+	PlacementBottom Placement = "bottom"
+	PlacementLeft   Placement = "left"
+	PlacementRight  Placement = "right"
+)
+
+func (p Placement) String() string {
+	return string(p)
+}
+
+type ContentProps struct {
+	Placement Placement // default: bottom (React Aria ile aynı)
+	// Offset, trigger ile content arasındaki boşluk (px, default 8).
+	Offset int
+	Attrs  templ.Attributes
+}
+
+templ Content(p ContentProps, tw ...string) {
+	{{
+	if p.Placement == "" {
+		p.Placement = PlacementBottom
+	}
+	if p.Offset == 0 {
+		p.Offset = 8
+	}
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn("popover", tw)) }
+		data-slot="popover-content"
+		data-placement={ p.Placement.String() }
+		data-offset={ strconv.Itoa(p.Offset) }
+		hidden
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// Arrow, trigger'ı işaret eden oku render eder; yerleşimi popover.js
+// data-placement'a göre yapar, dönüşü CSS üstlenir.
+templ Arrow(tw ...string) {
+	<span
+		class={ templ.SafeClass(utils.Cn("absolute", tw)) }
+		data-slot="popover-overlay-arrow-group"
+		aria-hidden="true"
+	>
+		<svg
+			data-slot="popover-overlay-arrow"
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 12 12"
+			width="12"
+			height="12"
+			fill="none"
+		>
+			<path d="M0 0C5.48483 8 6.5 8 12 0Z"></path>
+		</svg>
+	</span>
+}
+
+templ Dialog(tw ...string) {
+	<div
+		class={ templ.SafeClass(utils.Cn("popover__dialog", tw)) }
+		data-slot="popover-dialog"
+		role="dialog"
+	>
+		{ children... }
+	</div>
+}
+
+templ Heading(tw ...string) {
+	<h2 class={ templ.SafeClass(utils.Cn("popover__heading", tw)) } data-slot="popover-heading" slot="title">
+		{ children... }
+	</h2>
+}

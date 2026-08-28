@@ -1,0 +1,175 @@
+package checkbox
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — React compound API'sinin templ karşılığı.
+//
+// Anatomi:
+//
+//	@(Props{Name: "terms"}) {
+//		@Content() {
+//			@Control() {
+//				@Indicator()
+//			}
+//			Accept terms and conditions
+//		}
+//		@Description() { ... }   // opsiyonel
+//		@FieldError() { ... }    // opsiyonel
+//	}
+//
+// Content, gizli native input barındıran bir <label>'dır; işaretleme durumu
+// (root'taki data-selected + checkmark animasyonu) checkbox.js'teki change
+// dinleyicisiyle senkronlanır. Variant boşsa Group'tan miras alınır.
+
+type checkboxCtxKey int
+
+const checkboxRootKey checkboxCtxKey = 0
+
+type Variant string
+
+const (
+	VariantPrimary   Variant = "primary"
+	VariantSecondary Variant = "secondary"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantPrimary)
+	}
+	return string(v)
+}
+
+type Props struct {
+	Variant         Variant // boşsa group > primary
+	Name            string
+	Value           string
+	ID              string
+	IsSelected      bool
+	IsIndeterminate bool
+	IsDisabled      bool
+	IsInvalid       bool
+	IsRequired      bool
+	Attrs           templ.Attributes
+}
+
+func checkboxRoot(ctx context.Context) Props {
+	if p, ok := ctx.Value(checkboxRootKey).(Props); ok {
+		return p
+	}
+	return Props{}
+}
+
+templ Checkbox(p Props, tw ...string) {
+	{{
+	group := checkboxGroup(ctx)
+	if p.Variant == "" {
+		p.Variant = group.Variant
+	}
+	if p.Variant == "" {
+		p.Variant = VariantPrimary
+	}
+	if p.Name == "" {
+		p.Name = group.Name
+	}
+	p.IsDisabled = p.IsDisabled || group.IsDisabled
+	p.IsInvalid = p.IsInvalid || group.IsInvalid
+	ctx = context.WithValue(ctx, checkboxRootKey, p)
+	}}
+	<div
+		class={ utils.Cn("checkbox", "checkbox--"+p.Variant.String(), tw) }
+		data-slot="checkbox"
+		data-selected={ utils.BoolStr(p.IsSelected) }
+		data-indeterminate={ utils.BoolStr(p.IsIndeterminate) }
+		data-disabled={ utils.BoolStr(p.IsDisabled) }
+		data-invalid={ utils.BoolStr(p.IsInvalid) }
+		data-required={ utils.BoolStr(p.IsRequired) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Content(tw ...string) {
+	{{ root := checkboxRoot(ctx) }}
+	<label class={ utils.Cn("checkbox__content", tw) } data-slot="checkbox-content">
+		<input
+			type="checkbox"
+			class="sr-only"
+			checked?={ root.IsSelected }
+			disabled?={ root.IsDisabled }
+			required?={ root.IsRequired }
+			if root.Name != "" {
+				name={ root.Name }
+			}
+			if root.Value != "" {
+				value={ root.Value }
+			}
+			if root.ID != "" {
+				id={ root.ID }
+			}
+		/>
+		{ children... }
+	</label>
+}
+
+templ Control(tw ...string) {
+	<span class={ utils.Cn("checkbox__control", tw) } data-slot="checkbox-control">
+		{ children... }
+	</span>
+}
+
+// Indicator, varsayılan checkmark/indeterminate ikonlarını render eder.
+// İki ikon da DOM'dadır; aktif olmayan hidden'dır ve checkbox.js toggle'da günceller.
+templ Indicator(tw ...string) {
+	{{ root := checkboxRoot(ctx) }}
+	<span
+		class={ utils.Cn("checkbox__indicator", tw) }
+		data-slot="checkbox-indicator"
+		aria-hidden="true"
+	>
+		<svg
+			data-slot="checkbox-default-indicator--indeterminate"
+			hidden?={ !root.IsIndeterminate }
+			fill="none"
+			role="presentation"
+			stroke="currentColor"
+			stroke-linecap="round"
+			stroke-width="3"
+			viewBox="0 0 24 24"
+			aria-hidden="true"
+		>
+			<line x1="21" x2="3" y1="12" y2="12"></line>
+		</svg>
+		<svg
+			data-slot="checkbox-default-indicator--checkmark"
+			hidden?={ root.IsIndeterminate }
+			fill="none"
+			role="presentation"
+			stroke="currentColor"
+			stroke-dasharray="22"
+			stroke-dashoffset={ utils.If(root.IsSelected, "44", "66") }
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			stroke-width="2"
+			viewBox="0 0 17 18"
+			aria-hidden="true"
+		>
+			<polyline points="1 9 7 14 15 4"></polyline>
+		</svg>
+	</span>
+}
+
+// IndicatorCustom, varsayılan ikonlar yerine verdiğiniz içeriği gösterir.
+templ IndicatorCustom(tw ...string) {
+	<span
+		class={ utils.Cn("checkbox__indicator", tw) }
+		data-slot="checkbox-indicator"
+		aria-hidden="true"
+	>
+		{ children... }
+	</span>
+}

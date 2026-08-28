@@ -1,0 +1,156 @@
+package textfield
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 TextField — label, input, description ve hata mesajını tek erişilebilir
+// alanda birleştirir. Input (ve TextArea) variant/name/type/value/disabled/
+// required/invalid değerlerini TextField'dan templ context ile miras alır.
+//
+//	@textfield.TextField(textfield.Props{Name: "email", Type: "email"}) {
+//		@components.Label(components.LabelProps{}) { Email }
+//		@textfield.Input(textfield.InputProps{Placeholder: "Enter your email"})
+//		@components.Description() { ... } // opsiyonel
+//		@components.FieldError() { ... }  // opsiyonel
+//	}
+//
+// React'e özgü value/onChange (controlled state) yoktur; başlangıç değeri Value
+// ile verilir.
+
+type Variant string
+
+const (
+	VariantPrimary   Variant = "primary"
+	VariantSecondary Variant = "secondary"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantPrimary)
+	}
+	return string(v)
+}
+
+type Ctx struct {
+	Variant    Variant
+	Name       string
+	Type       string
+	Value      string
+	IsDisabled bool
+	IsRequired bool
+	IsInvalid  bool
+}
+
+type textFieldCtxKey int
+
+const textFieldKey textFieldCtxKey = 0
+
+// Field, Input/TextArea'nın context'ten miras alması için dışa açık erişimcidir.
+func Field(ctx context.Context) Ctx {
+	if p, ok := ctx.Value(textFieldKey).(Ctx); ok {
+		return p
+	}
+	return Ctx{}
+}
+
+type Props struct {
+	Variant    Variant // default: primary
+	FullWidth  bool
+	Name       string
+	Type       string // default: text
+	Value      string
+	IsDisabled bool
+	IsRequired bool
+	IsInvalid  bool
+	Attrs      templ.Attributes
+}
+
+templ TextField(p Props, tw ...string) {
+	{{
+	ctx = context.WithValue(ctx, textFieldKey, Ctx{
+		Variant:    p.Variant,
+		Name:       p.Name,
+		Type:       p.Type,
+		Value:      p.Value,
+		IsDisabled: p.IsDisabled,
+		IsRequired: p.IsRequired,
+		IsInvalid:  p.IsInvalid,
+	})
+	}}
+	<div
+		class={ utils.Cn("textfield", utils.If(p.FullWidth, "textfield--full-width", ""), tw) }
+		data-slot="textfield"
+		data-disabled={ utils.BoolStr(p.IsDisabled) }
+		data-invalid={ utils.BoolStr(p.IsInvalid) }
+		data-required={ utils.BoolStr(p.IsRequired) }
+		if p.IsInvalid {
+			aria-invalid="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+type InputProps struct {
+	// Variant boşsa TextField'dan miras alınır (yoksa primary).
+	Variant     Variant
+	FullWidth   bool
+	Placeholder string
+	// Aşağıdakiler boşsa TextField context'inden alınır.
+	Name       string
+	Type       string
+	Value      string
+	IsDisabled bool
+	IsRequired bool
+	IsInvalid  bool
+	Attrs      templ.Attributes
+}
+
+templ Input(p InputProps, tw ...string) {
+	{{
+	field := Field(ctx)
+	variant := p.Variant
+	if variant == "" {
+		variant = field.Variant
+	}
+	name := utils.If(p.Name != "", p.Name, field.Name)
+	typ := utils.If(p.Type != "", p.Type, field.Type)
+	if typ == "" {
+		typ = "text"
+	}
+	value := utils.If(p.Value != "", p.Value, field.Value)
+	disabled := p.IsDisabled || field.IsDisabled
+	required := p.IsRequired || field.IsRequired
+	invalid := p.IsInvalid || field.IsInvalid
+	}}
+	<input
+		class={ utils.Cn(
+			"input",
+			"input--"+variant.String(),
+			utils.If(p.FullWidth, "input--full-width", ""),
+			tw,
+		) }
+		data-slot="input"
+		type={ typ }
+		if name != "" {
+			name={ name }
+		}
+		if p.Placeholder != "" {
+			placeholder={ p.Placeholder }
+		}
+		if value != "" {
+			value={ value }
+		}
+		disabled?={ disabled }
+		required?={ required }
+		if invalid {
+			data-invalid="true"
+			aria-invalid="true"
+		}
+		{ p.Attrs... }
+	/>
+}

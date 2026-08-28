@@ -1,0 +1,179 @@
+package listbox
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/autocomplete"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/seleect"
+)
+
+// HeroUI v3  — seçilebilir seçenek listesi.
+//
+//	@(Props{SelectionMode: SelectionModeSingle}) {
+//		@Item(ItemProps{ID: "1"}) {
+//			@Label(LabelProps{}) { Bob }
+//			@ItemIndicator()
+//		}
+//	}
+//
+// Seçim durumu static/js/list_box.js tarafından yönetilir (aria-selected +
+// data-selected + checkmark animasyonu). React'e özgü selectedKeys/onAction
+// (controlled state) yoktur; başlangıç seçimi DefaultSelected ile verilir,
+// aksiyonlar Attrs (ör. htmx) ile bağlanır. Section başlığı için Header
+// componenti yazılana dek ham .header class'ı kullanılır.
+//
+// SelectionMode boşsa varsayılan "none"dır — Select içinde kullanılınca
+// (SelectPopover'ın altında) otomatik "single" olur, çünkü Select docs'unda
+// iç 'a selectionMode hiç verilmez ve seçim tektir; multiple isteniyorsa
+// yine de açıkça SelectionModeMultiple verilmelidir.
+
+type listBoxCtxKey int
+
+const (
+	listBoxRootKey listBoxCtxKey = iota
+	listBoxItemKey
+)
+
+type SelectionMode string
+
+const (
+	SelectionModeNone     SelectionMode = "none"
+	SelectionModeSingle   SelectionMode = "single"
+	SelectionModeMultiple SelectionMode = "multiple"
+)
+
+func (m SelectionMode) String() string {
+	return string(m)
+}
+
+type Variant string
+
+const (
+	VariantDefault Variant = "default"
+	VariantDanger  Variant = "danger"
+)
+
+func (v Variant) String() string {
+	return string(v)
+}
+
+type Props struct {
+	SelectionMode SelectionMode // default: none
+	Variant       Variant
+	Attrs         templ.Attributes
+}
+
+type ItemProps struct {
+	// ID, React'teki item key karşılığı; data-id olarak basılır.
+	ID              string
+	Variant         Variant
+	DefaultSelected bool
+	IsDisabled      bool
+	Attrs           templ.Attributes
+}
+
+func listBoxRoot(ctx context.Context) Props {
+	if p, ok := ctx.Value(listBoxRootKey).(Props); ok {
+		return p
+	}
+	return Props{}
+}
+
+func listBoxItem(ctx context.Context) ItemProps {
+	if p, ok := ctx.Value(listBoxItemKey).(ItemProps); ok {
+		return p
+	}
+	return ItemProps{}
+}
+
+templ ListBox(p Props, tw ...string) {
+	{{
+	if p.SelectionMode == "" {
+		if seleect.Inside(ctx) || autocomplete.Inside(ctx) {
+			p.SelectionMode = SelectionModeSingle
+		} else {
+			p.SelectionMode = SelectionModeNone
+		}
+	}
+	if p.Variant == "" {
+		p.Variant = VariantDefault
+	}
+	ctx = context.WithValue(ctx, listBoxRootKey, p)
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn("list-box", "list-box--"+p.Variant.String(), tw)) }
+		data-slot="list-box"
+		role="listbox"
+		data-selection-mode={ p.SelectionMode.String() }
+		aria-multiselectable?={ p.SelectionMode == SelectionModeMultiple }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Item(p ItemProps, tw ...string) {
+	{{
+	if p.Variant == "" {
+		p.Variant = VariantDefault
+	}
+	ctx = context.WithValue(ctx, listBoxItemKey, p)
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn("list-box-item", "list-box-item--"+p.Variant.String(), tw)) }
+		data-slot="list-box-item"
+		role="option"
+		if p.ID != "" {
+			data-id={ p.ID }
+		}
+		aria-selected={ utils.BoolStr(p.DefaultSelected) }
+		if p.DefaultSelected {
+			data-selected="true"
+		}
+		if p.IsDisabled {
+			data-disabled="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// ItemIndicator, seçili durumda görünen varsayılan checkmark'ı render eder.
+templ ItemIndicator(tw ...string) {
+	{{ item := listBoxItem(ctx) }}
+	<span
+		class={ templ.SafeClass(utils.Cn("list-box-item__indicator", tw)) }
+		data-slot="list-box-item-indicator"
+		aria-hidden="true"
+		if item.DefaultSelected {
+			data-visible="true"
+		}
+	>
+		<svg
+			data-slot="list-box-item-indicator--checkmark"
+			viewBox="0 0 17 18"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			stroke-dasharray="22"
+			stroke-dashoffset={ utils.If(item.DefaultSelected, "44", "66") }
+			aria-hidden="true"
+		>
+			<polyline points="1 9 7 14 15 4"></polyline>
+		</svg>
+	</span>
+}
+
+templ Section(tw ...string) {
+	<div
+		class={ templ.SafeClass(utils.Cn("list-box-section", tw)) }
+		data-slot="list-box-section"
+		role="group"
+	>
+		{ children... }
+	</div>
+}

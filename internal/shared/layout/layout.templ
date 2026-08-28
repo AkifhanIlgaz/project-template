@@ -23,6 +23,26 @@ templ head(title string, csrfToken string) {
 		<script src="/static/js/htmx-helpers.js"></script>
 		<script src="/static/js/alert_dialog.js"></script>
 		<script src="/static/js/toast.js"></script>
+		<!-- Vendored alongside internal/shared/components — same blanket-load
+		     approach as alert_dialog.js/toast.js above: a template repo can't
+		     know in advance which of these a downstream project will render. -->
+		<script src="/static/js/accordion.js"></script>
+		<script src="/static/js/autocomplete.js"></script>
+		<script src="/static/js/checkbox.js"></script>
+		<script src="/static/js/disclosure.js"></script>
+		<script src="/static/js/dropdown.js"></script>
+		<script src="/static/js/input_otp.js"></script>
+		<script src="/static/js/list_box.js"></script>
+		<script src="/static/js/popover.js"></script>
+		<script src="/static/js/scroll_shadow.js"></script>
+		<script src="/static/js/search_field.js"></script>
+		<script src="/static/js/select.js"></script>
+		<script src="/static/js/switch.js"></script>
+		<script src="/static/js/tabs.js"></script>
+		<script src="/static/js/tag_group.js"></script>
+		<script src="/static/js/toggle_button.js"></script>
+		<script src="/static/js/toolbar.js"></script>
+		<script src="/static/js/tooltip.js"></script>
 	</head>
 }
 

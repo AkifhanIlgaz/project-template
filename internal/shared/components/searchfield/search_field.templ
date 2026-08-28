@@ -1,0 +1,177 @@
+package searchfield
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — arama girişi; temizle butonu ve arama ikonu içerir.
+//
+//	@SearchField(Props{Name: "search"}) {
+//		@components.Label(components.LabelProps{}) { Search }
+//		@Group() {
+//			@SearchIcon()
+//			@Input(InputProps{Placeholder: "Search..."})
+//			@ClearButton()
+//		}
+//	}
+//
+// Girişin boş olup olmadığı (temizle butonunun görünürlüğü) DOM'da tutulur:
+// static/js/search_field.js data-empty'yi input'a göre günceller. React'e
+// özgü value/onChange (controlled state) yoktur; Autocomplete içinde filtreleme
+// autocomplete.js tarafından yapılır.
+
+type Variant string
+
+const (
+	VariantPrimary   Variant = "primary"
+	VariantSecondary Variant = "secondary"
+)
+
+func (v Variant) String() string {
+	return string(v)
+}
+
+type searchFieldCtxKey int
+
+const searchFieldRootKey searchFieldCtxKey = 0
+
+type Props struct {
+	Variant    Variant // default: primary
+	FullWidth  bool
+	Name       string
+	IsDisabled bool
+	IsInvalid  bool
+	Attrs      templ.Attributes
+}
+
+func searchFieldRoot(ctx context.Context) Props {
+	if p, ok := ctx.Value(searchFieldRootKey).(Props); ok {
+		return p
+	}
+	return Props{}
+}
+
+templ SearchField(p Props, tw ...string) {
+	{{
+	if p.Variant == "" {
+		p.Variant = VariantPrimary
+	}
+	ctx = context.WithValue(ctx, searchFieldRootKey, p)
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn(
+			"search-field",
+			"search-field--"+p.Variant.String(),
+			utils.If(p.FullWidth, "search-field--full-width", ""),
+			tw,
+		)) }
+		data-slot="search-field"
+		data-empty="true"
+		if p.IsDisabled {
+			data-disabled="true"
+		}
+		if p.IsInvalid {
+			data-invalid="true"
+			aria-invalid="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Group(tw ...string) {
+	{{ root := searchFieldRoot(ctx) }}
+	<div
+		class={ templ.SafeClass(utils.Cn(
+			"search-field__group",
+			utils.If(root.FullWidth, "search-field__group--full-width", ""),
+			tw,
+		)) }
+		data-slot="search-field-group"
+		role="presentation"
+	>
+		{ children... }
+	</div>
+}
+
+// SearchIcon, varsayılan büyüteç ikonunu render eder.
+templ SearchIcon(tw ...string) {
+	<svg
+		class={ templ.SafeClass(utils.Cn("search-field__search-icon", tw)) }
+		data-slot="search-field-search-icon"
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"
+	>
+		<circle cx="11" cy="11" r="8"></circle>
+		<path d="m21 21-4.3-4.3"></path>
+	</svg>
+}
+
+type InputProps struct {
+	Placeholder string
+	// Name, form gönderiminde alan adı; boşsa root'un Name'i kullanılır.
+	Name      string
+	AutoFocus bool
+	Attrs     templ.Attributes
+}
+
+templ Input(p InputProps, tw ...string) {
+	{{
+	root := searchFieldRoot(ctx)
+	name := p.Name
+	if name == "" {
+		name = root.Name
+	}
+	}}
+	<input
+		type="search"
+		class={ templ.SafeClass(utils.Cn("search-field__input", tw)) }
+		data-slot="search-field-input"
+		if name != "" {
+			name={ name }
+		}
+		if p.Placeholder != "" {
+			placeholder={ p.Placeholder }
+		}
+		autofocus?={ p.AutoFocus }
+		disabled?={ root.IsDisabled }
+		{ p.Attrs... }
+	/>
+}
+
+// ClearButton, girişi temizleyen X butonunu render eder (boşken gizli).
+templ ClearButton(tw ...string) {
+	<button
+		type="button"
+		class={ templ.SafeClass(utils.Cn("close-button", "close-button--default", "search-field__clear-button", tw)) }
+		data-slot="search-field-clear-button"
+		aria-label="Clear search"
+		tabindex="-1"
+	>
+		<svg
+			data-slot="close-button-icon"
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 16 16"
+			width="16"
+			height="16"
+			fill="none"
+			aria-hidden="true"
+		>
+			<path
+				fill-rule="evenodd"
+				clip-rule="evenodd"
+				fill="currentColor"
+				d="M3.47 3.47a.75.75 0 0 1 1.06 0L8 6.94l3.47-3.47a.75.75 0 1 1 1.06 1.06L9.06 8l3.47 3.47a.75.75 0 1 1-1.06 1.06L8 9.06l-3.47 3.47a.75.75 0 0 1-1.06-1.06L6.94 8 3.47 4.53a.75.75 0 0 1 0-1.06Z"
+			></path>
+		</svg>
+	</button>
+}

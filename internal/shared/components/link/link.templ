@@ -1,0 +1,68 @@
+package link
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3  — ikon destekli stillendirilmiş anchor.
+//
+//	@Link(Props{Href: "#"}) {
+//		Call to action
+//		@Icon()
+//	}
+//
+// Hover/pressed/focus durumları tamamen CSS ile çalışır; JS gerekmez.
+// target/rel gibi ek attribute'lar Attrs ile verilir.
+
+type Props struct {
+	Href       string
+	IsDisabled bool
+	Attrs      templ.Attributes
+}
+
+templ Link(p Props, tw ...string) {
+	<a
+		class={ templ.SafeClass(utils.Cn("link", tw)) }
+		if p.Href != "" {
+			href={ templ.URL(p.Href) }
+		}
+		if p.IsDisabled {
+			aria-disabled="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</a>
+}
+
+// Icon, varsayılan external-link ikonunu render eder
+// (React'teki <.Icon /> çocuksuz kullanım karşılığı).
+templ Icon(tw ...string) {
+	<span
+		class={ templ.SafeClass(utils.Cn("link__icon", tw)) }
+		data-slot="link-icon"
+		data-default-icon="true"
+	>
+		<svg
+			data-slot="link-default-icon"
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 7 7"
+			width="9"
+			height="9"
+			fill="none"
+			aria-hidden="true"
+			role="presentation"
+		>
+			<path
+				d="M1.20592 6.84333L0.379822 6.01723L4.52594 1.8672H1.37819L1.38601 0.731812H6.48742V5.83714H5.34421L5.35203 2.6933L1.20592 6.84333Z"
+				fill="currentColor"
+			></path>
+		</svg>
+	</span>
+}
+
+// IconCustom, çocuk olarak verilen özel ikonu sarar
+// (React'teki <.Icon>{icon}</.Icon> karşılığı).
+templ IconCustom(tw ...string) {
+	<span class={ templ.SafeClass(utils.Cn("link__icon", tw)) } data-slot="link-icon">
+		{ children... }
+	</span>
+}

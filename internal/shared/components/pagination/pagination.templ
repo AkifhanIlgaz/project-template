@@ -1,0 +1,165 @@
+package pagination
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3  — composable sayfa navigasyonu.
+//
+//	@(Props{}) {
+//		@Content() {
+//			@Item() {
+//				@Previous(NavProps{IsDisabled: true}) {
+//					@PreviousIcon()
+//					<span>Previous</span>
+//				}
+//			}
+//			@Item() {
+//				@Link(LinkProps{IsActive: true}) { 1 }
+//			}
+//		}
+//	}
+//
+// React'teki onPress ile sayfa state'i yerine navigasyon Attrs ile bağlanır
+// (href'li htmx isteği vb.); aktif sayfa server render'da IsActive ile işaretlenir.
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	return string(s)
+}
+
+type Props struct {
+	Size  Size // default: md
+	Attrs templ.Attributes
+}
+
+templ Pagination(p Props, tw ...string) {
+	{{
+	if p.Size == "" {
+		p.Size = SizeMd
+	}
+	}}
+	<nav
+		class={ templ.SafeClass(utils.Cn("pagination", "pagination--"+p.Size.String(), tw)) }
+		data-slot="pagination"
+		if p.Attrs["aria-label"] == nil {
+			aria-label="pagination"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</nav>
+}
+
+templ Summary(tw ...string) {
+	<div class={ templ.SafeClass(utils.Cn("pagination__summary", tw)) } data-slot="pagination-summary">
+		{ children... }
+	</div>
+}
+
+templ Content(tw ...string) {
+	<ul class={ templ.SafeClass(utils.Cn("pagination__content", tw)) } data-slot="pagination-content">
+		{ children... }
+	</ul>
+}
+
+templ Item(tw ...string) {
+	<li class={ templ.SafeClass(utils.Cn("pagination__item", tw)) } data-slot="pagination-item">
+		{ children... }
+	</li>
+}
+
+type LinkProps struct {
+	IsActive   bool
+	IsDisabled bool
+	Attrs      templ.Attributes
+}
+
+templ Link(p LinkProps, tw ...string) {
+	<button
+		type="button"
+		class={ templ.SafeClass(utils.Cn("pagination__link", tw)) }
+		data-slot="pagination-link"
+		if p.IsActive {
+			data-active="true"
+			aria-current="page"
+		}
+		disabled?={ p.IsDisabled }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</button>
+}
+
+// NavProps, Previous/Next butonlarının ortak props'u.
+type NavProps struct {
+	IsDisabled bool
+	Attrs      templ.Attributes
+}
+
+templ Previous(p NavProps, tw ...string) {
+	<button
+		type="button"
+		class={ templ.SafeClass(utils.Cn("pagination__link pagination__link--nav", tw)) }
+		data-slot="pagination-previous"
+		disabled?={ p.IsDisabled }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</button>
+}
+
+templ Next(p NavProps, tw ...string) {
+	<button
+		type="button"
+		class={ templ.SafeClass(utils.Cn("pagination__link pagination__link--nav", tw)) }
+		data-slot="pagination-next"
+		disabled?={ p.IsDisabled }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</button>
+}
+
+templ paginationChevron(dataSlot string, path string, tw []string) {
+	<span class={ templ.SafeClass(utils.Cn("", tw)) } data-slot={ dataSlot } aria-hidden="true">
+		<svg
+			class="size-4"
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+		>
+			<path d={ path }></path>
+		</svg>
+	</span>
+}
+
+// PreviousIcon, varsayılan sola chevron ikonunu render eder.
+templ PreviousIcon(tw ...string) {
+	@paginationChevron("pagination-previous-icon", "m15 18-6-6 6-6", tw)
+}
+
+// NextIcon, varsayılan sağa chevron ikonunu render eder.
+templ NextIcon(tw ...string) {
+	@paginationChevron("pagination-next-icon", "m9 18 6-6-6-6", tw)
+}
+
+templ Ellipsis(tw ...string) {
+	<span
+		class={ templ.SafeClass(utils.Cn("pagination__ellipsis", tw)) }
+		data-slot="pagination-ellipsis"
+		aria-hidden="true"
+	>
+		&hellip;
+	</span>
+}

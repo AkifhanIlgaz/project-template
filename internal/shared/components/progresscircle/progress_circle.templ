@@ -1,0 +1,208 @@
+package progresscircle
+
+import (
+	"context"
+	"math"
+	"strconv"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — dairesel ilerleme göstergesi.
+//
+//	@(Props{Value: 60, Attrs: templ.Attributes{"aria-label": "Loading"}}) {
+//		@Track(TrackProps{}) {
+//			@TrackCircle(CircleProps{})
+//			@FillCircle(CircleProps{})
+//		}
+//	}
+//
+// Geometri React kaynağıyla aynı: viewBox 36x36, merkez 18, r 16, strokeWidth 4;
+// props ile override edilebilir (Custom SVG Props örneği). IsIndeterminate'te
+// aria-valuenow basılmaz, CSS spin animasyonu devreye girer.
+
+type Color string
+
+const (
+	ColorAccent  Color = "accent"
+	ColorDanger  Color = "danger"
+	ColorDefault Color = "default"
+	ColorSuccess Color = "success"
+	ColorWarning Color = "warning"
+)
+
+func (c Color) String() string {
+	return string(c)
+}
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	return string(s)
+}
+
+type Props struct {
+	Value float64
+	// MinValue/MaxValue aralığı belirler; ikisi de sıfırsa 0-100 kabul edilir.
+	MinValue        float64
+	MaxValue        float64
+	IsIndeterminate bool
+	Color           Color // default: accent
+	Size            Size  // default: md
+	Attrs           templ.Attributes
+}
+
+type progressCircleCtxKey int
+
+const progressCircleStateKey progressCircleCtxKey = 0
+
+type progressCircleState struct {
+	percentage      float64
+	isIndeterminate bool
+}
+
+func progressCircleCtx(ctx context.Context) progressCircleState {
+	if s, ok := ctx.Value(progressCircleStateKey).(progressCircleState); ok {
+		return s
+	}
+	return progressCircleState{}
+}
+
+templ ProgressCircle(p Props, tw ...string) {
+	{{
+	if p.Color == "" {
+		p.Color = ColorAccent
+	}
+	if p.Size == "" {
+		p.Size = SizeMd
+	}
+	if p.MinValue == 0 && p.MaxValue == 0 {
+		p.MaxValue = 100
+	}
+	pct := 0.0
+	if p.MaxValue > p.MinValue {
+		pct = (p.Value - p.MinValue) / (p.MaxValue - p.MinValue) * 100
+	}
+	pct = math.Max(0, math.Min(100, pct))
+	ctx = context.WithValue(ctx, progressCircleStateKey, progressCircleState{
+		percentage:      pct,
+		isIndeterminate: p.IsIndeterminate,
+	})
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn(
+			"progress-circle",
+			"progress-circle--"+p.Color.String(),
+			"progress-circle--"+p.Size.String(),
+			tw,
+		)) }
+		data-slot="progress-circle"
+		role="progressbar"
+		if !p.IsIndeterminate {
+			aria-valuenow={ strconv.FormatFloat(p.Value, 'f', -1, 64) }
+			aria-valuetext={ strconv.FormatFloat(math.Round(pct), 'f', -1, 64) + "%" }
+		}
+		aria-valuemin={ strconv.FormatFloat(p.MinValue, 'f', -1, 64) }
+		aria-valuemax={ strconv.FormatFloat(p.MaxValue, 'f', -1, 64) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+type TrackProps struct {
+	// ViewBox, varsayılan "0 0 36 36" değerini override eder.
+	ViewBox string
+	Attrs   templ.Attributes
+}
+
+templ Track(p TrackProps, tw ...string) {
+	{{
+	if p.ViewBox == "" {
+		p.ViewBox = "0 0 36 36"
+	}
+	}}
+	<svg
+		class={ templ.SafeClass(utils.Cn("progress-circle__track", tw)) }
+		data-slot="progress-circle-track"
+		fill="none"
+		viewBox={ p.ViewBox }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</svg>
+}
+
+// CircleProps, TrackCircle ve FillCircle'ın SVG geometrisi.
+// Sıfır değerler varsayılanlarla doldurulur: cx=cy=18, r=16, strokeWidth=4.
+type CircleProps struct {
+	Cx          float64
+	Cy          float64
+	R           float64
+	StrokeWidth float64
+	Attrs       templ.Attributes
+}
+
+func (p CircleProps) withDefaults() CircleProps {
+	if p.Cx == 0 {
+		p.Cx = 18
+	}
+	if p.Cy == 0 {
+		p.Cy = 18
+	}
+	if p.R == 0 {
+		p.R = 16
+	}
+	if p.StrokeWidth == 0 {
+		p.StrokeWidth = 4
+	}
+	return p
+}
+
+func fmtF(v float64) string {
+	return strconv.FormatFloat(v, 'f', -1, 64)
+}
+
+templ TrackCircle(p CircleProps, tw ...string) {
+	{{ p = p.withDefaults() }}
+	<circle
+		class={ templ.SafeClass(utils.Cn("progress-circle__track-circle", tw)) }
+		data-slot="progress-circle-track-circle"
+		cx={ fmtF(p.Cx) }
+		cy={ fmtF(p.Cy) }
+		r={ fmtF(p.R) }
+		stroke-width={ fmtF(p.StrokeWidth) }
+		{ p.Attrs... }
+	></circle>
+}
+
+templ FillCircle(p CircleProps, tw ...string) {
+	{{
+	p = p.withDefaults()
+	s := progressCircleCtx(ctx)
+	circumference := 2 * math.Pi * p.R
+	dashoffset := circumference - (s.percentage/100)*circumference
+	if s.isIndeterminate {
+		dashoffset = circumference * 0.75
+	}
+	}}
+	<circle
+		class={ templ.SafeClass(utils.Cn("progress-circle__fill-circle", tw)) }
+		data-slot="progress-circle-fill-circle"
+		cx={ fmtF(p.Cx) }
+		cy={ fmtF(p.Cy) }
+		r={ fmtF(p.R) }
+		stroke-width={ fmtF(p.StrokeWidth) }
+		stroke-dasharray={ fmtF(circumference) }
+		stroke-dashoffset={ fmtF(dashoffset) }
+		stroke-linecap="round"
+		transform={ "rotate(-90 " + fmtF(p.Cx) + " " + fmtF(p.Cy) + ")" }
+		{ p.Attrs... }
+	></circle>
+}

@@ -1,0 +1,63 @@
+package separator
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3 Separator — içerik arasına görsel ayraç. Yatay (varsayılan) ya da
+// dikey; Toolbar gibi bileşenlerde gruplar arası ayrım için kullanılır.
+//
+//	@Separator(Props{Orientation: OrientationVertical})
+
+type Orientation string
+
+const (
+	OrientationHorizontal Orientation = "horizontal"
+	OrientationVertical   Orientation = "vertical"
+)
+
+func (o Orientation) String() string {
+	if o == "" {
+		return string(OrientationHorizontal)
+	}
+
+	return string(o)
+}
+
+type Variant string
+
+const (
+	VariantDefault   Variant = "default"
+	VariantSecondary Variant = "secondary"
+	VariantTertiary  Variant = "tertiary"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantDefault)
+	}
+
+	return string(v)
+}
+
+type Props struct {
+	Orientation Orientation // default: horizontal
+	Variant     Variant     // default: default
+	Attrs       templ.Attributes
+}
+
+templ Separator(p Props, tw ...string) {
+	<div
+		class={ utils.Cn(
+			"separator",
+			"separator--"+p.Orientation.String(),
+			"separator--"+p.Variant.String(),
+			tw,
+		) }
+		data-slot="separator"
+		role="separator"
+		data-orientation={ p.Orientation.String() }
+		if p.Orientation == OrientationVertical {
+			aria-orientation="vertical"
+		}
+		{ p.Attrs... }
+	></div>
+}

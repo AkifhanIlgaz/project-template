@@ -1,0 +1,37 @@
+package form
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3 Form — form doğrulama ve gönderimi için native <form> sarmalayıcısı.
+// React Aria Form'un karşılığıdır; kendine ait görsel class'ı yoktur, düzen
+// tailwind class'larıyla (tw) verilir.
+//
+//	@form.Form(form.Props{}, "flex w-96 flex-col gap-4") {
+//		@textfield.TextField(...) { ... }
+//		@button.Button(button.Props{}) { Submit }
+//	}
+//
+// React'e özgü onSubmit/validate (controlled state) yoktur; gönderim native
+// olarak ya da htmx gibi Attrs ile bağlanır.
+
+type Props struct {
+	Action string
+	Method string // get | post
+	Attrs  templ.Attributes
+}
+
+templ Form(p Props, tw ...string) {
+	<form
+		class={ templ.SafeClass(utils.Cn(tw)) }
+		data-slot="form"
+		if p.Action != "" {
+			action={ p.Action }
+		}
+		if p.Method != "" {
+			method={ p.Method }
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</form>
+}

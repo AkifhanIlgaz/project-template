@@ -1,0 +1,277 @@
+package autocomplete
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — filtrelemeli select; açılır listeden arayarak tek/çoklu seçim.
+//
+//	@Autocomplete(Props{Placeholder: "Select one"}, "w-64") {
+//		@components.Label(components.LabelProps{}) { State }
+//		@Trigger() {
+//			@Value(ValueProps{})
+//			@ClearButton()
+//			@Indicator()
+//		}
+//		@Popover(PopoverProps{}) {
+//			@Filter() {
+//				@searchfield.SearchField(searchfield.Props{Variant: searchfield.VariantSecondary}) {
+//					@searchfield.Group() {
+//						@searchfield.SearchIcon()
+//						@searchfield.Input(searchfield.InputProps{Placeholder: "Search...", AutoFocus: true})
+//						@searchfield.ClearButton()
+//					}
+//				}
+//				@listbox.ListBox(listbox.Props{}) {
+//					@listbox.Item(listbox.ItemProps{ID: "florida"}) {
+//						Florida
+//						@listbox.ItemIndicator()
+//					}
+//				}
+//				@EmptyState() { No results found }
+//			}
+//		}
+//	}
+//
+// Açma/kapama, konumlandırma, seçili değerin trigger'a yansıtılması, arama
+// girişiyle liste filtreleme ve temizle butonu static/js/autocomplete.js'te;
+// öğe seçim/checkmark toggle'ı mevcut static/js/list_box.js'in aynı click
+// delegasyonunu paylaşır. React'e özgü value/onChange (controlled state)
+// yoktur; başlangıç değeri seçili ListBox öğe(ler)inden okunur.
+
+type Variant string
+
+const (
+	VariantDefault   Variant = "default"
+	VariantSecondary Variant = "secondary"
+)
+
+func (v Variant) String() string {
+	return string(v)
+}
+
+type autocompleteCtxKey int
+
+const autocompleteRootKey autocompleteCtxKey = 0
+
+type Props struct {
+	Variant     Variant // default: default
+	FullWidth   bool
+	Placeholder string
+	IsDisabled  bool
+	IsInvalid   bool
+	IsRequired  bool
+	Attrs       templ.Attributes
+}
+
+func autocompleteRoot(ctx context.Context) Props {
+	if p, ok := ctx.Value(autocompleteRootKey).(Props); ok {
+		return p
+	}
+	return Props{}
+}
+
+// Inside, iç ListBox'ın varsayılan SelectionMode'unu single'a çevirmek için
+// kullanılır (Select ile aynı davranış; bkz. listbox.ListBox).
+func Inside(ctx context.Context) bool {
+	_, ok := ctx.Value(autocompleteRootKey).(Props)
+	return ok
+}
+
+templ Autocomplete(p Props, tw ...string) {
+	{{
+	if p.Variant == "" {
+		p.Variant = VariantDefault
+	}
+	ctx = context.WithValue(ctx, autocompleteRootKey, p)
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn(
+			"autocomplete",
+			"autocomplete--"+p.Variant.String(),
+			utils.If(p.FullWidth, "autocomplete--full-width", ""),
+			tw,
+		)) }
+		data-slot="autocomplete"
+		if p.IsDisabled {
+			data-disabled="true"
+		}
+		if p.IsInvalid {
+			data-invalid="true"
+			aria-invalid="true"
+		}
+		if p.IsRequired {
+			data-required="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Trigger(tw ...string) {
+	{{ root := autocompleteRoot(ctx) }}
+	<button
+		type="button"
+		class={ templ.SafeClass(utils.Cn(
+			"autocomplete__trigger",
+			utils.If(root.FullWidth, "autocomplete__trigger--full-width", ""),
+			tw,
+		)) }
+		data-slot="autocomplete-trigger"
+		aria-haspopup="listbox"
+		aria-expanded="false"
+		disabled?={ root.IsDisabled }
+	>
+		{ children... }
+	</button>
+}
+
+type ValueProps struct {
+	// Text, seçili öğenin görünen metni; boşsa root'un Placeholder'ı gösterilir.
+	Text string
+}
+
+templ Value(p ValueProps) {
+	{{
+	root := autocompleteRoot(ctx)
+	placeholder := p.Text == ""
+	text := p.Text
+	if placeholder {
+		text = root.Placeholder
+	}
+	}}
+	<span
+		class="autocomplete__value"
+		data-slot="autocomplete-value"
+		if placeholder {
+			data-placeholder="true"
+		}
+	>
+		{ text }
+	</span>
+}
+
+// ClearButton, seçimi temizleyen X butonunu render eder (seçim yokken gizli).
+// Trigger bir <button> olduğundan iç içe button geçersiz HTML olur (tarayıcı
+// parser'ı trigger'ı erken kapatıp indicator'ı dışarı taşır); bu yüzden
+// span role="button" kullanılır — böylece Value/Clear/Indicator trigger içinde kalır.
+templ ClearButton(tw ...string) {
+	<span
+		role="button"
+		class={ templ.SafeClass(utils.Cn("autocomplete__clear-button", tw)) }
+		data-slot="autocomplete-clear-button"
+		aria-label="Clear selection"
+		data-empty="true"
+		tabindex="-1"
+	>
+		<svg
+			data-slot="autocomplete-clear-button-icon"
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 16 16"
+			width="16"
+			height="16"
+			fill="none"
+			aria-hidden="true"
+		>
+			<path
+				fill-rule="evenodd"
+				clip-rule="evenodd"
+				fill="currentColor"
+				d="M3.47 3.47a.75.75 0 0 1 1.06 0L8 6.94l3.47-3.47a.75.75 0 1 1 1.06 1.06L9.06 8l3.47 3.47a.75.75 0 1 1-1.06 1.06L8 9.06l-3.47 3.47a.75.75 0 0 1-1.06-1.06L6.94 8 3.47 4.53a.75.75 0 0 1 0-1.06Z"
+			></path>
+		</svg>
+	</span>
+}
+
+// Indicator, varsayılan chevron-down ikonunu render eder.
+templ Indicator(tw ...string) {
+	<svg
+		class={ templ.SafeClass(utils.Cn("autocomplete__indicator", tw)) }
+		data-slot="autocomplete-default-indicator"
+		data-open="false"
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"
+	>
+		<path d="m6 9 6 6 6-6"></path>
+	</svg>
+}
+
+// IndicatorCustom, varsayılan chevron yerine verdiğiniz içeriği gösterir.
+templ IndicatorCustom(tw ...string) {
+	<span
+		class={ templ.SafeClass(utils.Cn("autocomplete__indicator", tw)) }
+		data-slot="autocomplete-indicator"
+		data-open="false"
+		aria-hidden="true"
+	>
+		{ children... }
+	</span>
+}
+
+type PopoverPlacement string
+
+const (
+	PopoverPlacementTop    PopoverPlacement = "top"
+	PopoverPlacementBottom PopoverPlacement = "bottom"
+	PopoverPlacementLeft   PopoverPlacement = "left"
+	PopoverPlacementRight  PopoverPlacement = "right"
+)
+
+func (p PopoverPlacement) String() string {
+	return string(p)
+}
+
+type PopoverProps struct {
+	Placement PopoverPlacement // default: bottom
+	Attrs     templ.Attributes
+}
+
+templ Popover(p PopoverProps, tw ...string) {
+	{{
+	if p.Placement == "" {
+		p.Placement = PopoverPlacementBottom
+	}
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn("autocomplete__popover", tw)) }
+		data-slot="autocomplete-popover"
+		data-placement={ p.Placement.String() }
+		hidden
+		{ p.Attrs... }
+	>
+		<div class="autocomplete__popover-dialog" data-slot="autocomplete-popover-dialog">
+			{ children... }
+		</div>
+	</div>
+}
+
+// Filter, SearchField ile ListBox'ı sarar; autocomplete.js aramayı bu kapsayıcı
+// içindeki input'tan okuyup list-box öğelerini filtreler.
+templ Filter(tw ...string) {
+	<div
+		class={ templ.SafeClass(utils.Cn(tw)) }
+		data-slot="autocomplete-filter"
+	>
+		{ children... }
+	</div>
+}
+
+// EmptyState, arama sonucu boşken gösterilir (varsayılan olarak gizli).
+templ EmptyState(tw ...string) {
+	<div
+		class={ templ.SafeClass(utils.Cn(tw)) }
+		data-slot="empty-state"
+		hidden
+	>
+		{ children... }
+	</div>
+}

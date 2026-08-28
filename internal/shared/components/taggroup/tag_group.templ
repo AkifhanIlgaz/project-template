@@ -1,0 +1,224 @@
+package taggroup
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 TagGroup — klavye gezinmesi, seçim ve kaldırma destekli etiket
+// listesi. React compound API'sinin templ karşılığı.
+//
+// Anatomi:
+//
+//	@TagGroup(Props{SelectionMode: SelectionModeSingle}) {
+//		@components.Label(components.LabelProps{}) { Categories }
+//		@List() {
+//			@Tag(TagProps{ID: "news"}) { News }
+//			@Tag(TagProps{ID: "travel"}) { Travel }
+//		}
+//		@components.Description() { ... }   // opsiyonel
+//	}
+//
+// Controlled state YOK; seçim DOM'da tutulur (data-selected) ve tag_group.js ile
+// yönetilir. size + variant Group'tan miras alınır (Tag'e elle verilmez).
+// AllowRemove=true iken her Tag otomatik bir kaldırma butonu basar.
+
+type SelectionMode string
+
+const (
+	SelectionModeNone     SelectionMode = "none"
+	SelectionModeSingle   SelectionMode = "single"
+	SelectionModeMultiple SelectionMode = "multiple"
+)
+
+func (m SelectionMode) String() string {
+	if m == "" {
+		return string(SelectionModeNone)
+	}
+
+	return string(m)
+}
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	if s == "" {
+		return string(SizeMd)
+	}
+
+	return string(s)
+}
+
+type Variant string
+
+const (
+	VariantDefault Variant = "default"
+	VariantSurface Variant = "surface"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantDefault)
+	}
+
+	return string(v)
+}
+
+type tagCtxKey int
+
+const tagGroupKey tagCtxKey = 0
+
+type groupCtx struct {
+	size          Size
+	variant       Variant
+	selectionMode SelectionMode
+	isDisabled    bool
+	allowRemove   bool
+	selectedKeys  map[string]bool
+	disabledKeys  map[string]bool
+}
+
+func tagGroup(ctx context.Context) groupCtx {
+	if c, ok := ctx.Value(tagGroupKey).(groupCtx); ok {
+		return c
+	}
+	return groupCtx{}
+}
+
+type Props struct {
+	SelectionMode       SelectionMode // default: none
+	Size                Size          // default: md
+	Variant             Variant       // default: default
+	DefaultSelectedKeys []string
+	DisabledKeys        []string
+	IsDisabled          bool
+	// AllowRemove, her Tag'e kaldırma butonu ekler (React'teki onRemove karşılığı).
+	AllowRemove bool
+	AriaLabel   string
+	Attrs       templ.Attributes
+}
+
+templ TagGroup(p Props, tw ...string) {
+	{{
+	selected := make(map[string]bool, len(p.DefaultSelectedKeys))
+	for _, k := range p.DefaultSelectedKeys {
+		selected[k] = true
+	}
+	disabled := make(map[string]bool, len(p.DisabledKeys))
+	for _, k := range p.DisabledKeys {
+		disabled[k] = true
+	}
+	ctx = context.WithValue(ctx, tagGroupKey, groupCtx{
+		size:          p.Size,
+		variant:       p.Variant,
+		selectionMode: p.SelectionMode,
+		isDisabled:    p.IsDisabled,
+		allowRemove:   p.AllowRemove,
+		selectedKeys:  selected,
+		disabledKeys:  disabled,
+	})
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn("tag-group", tw)) }
+		data-slot="tag-group"
+		role="group"
+		if p.AriaLabel != "" {
+			aria-label={ p.AriaLabel }
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ List(tw ...string) {
+	{{ group := tagGroup(ctx) }}
+	<div
+		class={ utils.Cn("tag-group__list", tw) }
+		data-slot="tag-group-list"
+		role="list"
+		data-selection-mode={ group.selectionMode.String() }
+	>
+		{ children... }
+	</div>
+}
+
+type TagProps struct {
+	ID         string
+	IsDisabled bool
+	// TextValue, erişilebilirlik için metin karşılığı (aria-label).
+	TextValue string
+	Attrs     templ.Attributes
+}
+
+templ Tag(p TagProps, tw ...string) {
+	{{
+	group := tagGroup(ctx)
+	selectable := group.selectionMode != SelectionModeNone && group.selectionMode != ""
+	selected := p.ID != "" && group.selectedKeys[p.ID]
+	disabled := p.IsDisabled || group.isDisabled || (p.ID != "" && group.disabledKeys[p.ID])
+	}}
+	<div
+		class={ utils.Cn(
+			"tag",
+			"tag--"+group.size.String(),
+			"tag--"+group.variant.String(),
+			tw,
+		) }
+		data-slot="tag"
+		if p.ID != "" {
+			data-key={ p.ID }
+		}
+		if selectable {
+			role="option"
+			aria-selected={ utils.BoolStr(selected) }
+			tabindex={ utils.If(disabled, "-1", "0") }
+		}
+		if selected {
+			data-selected="true"
+		}
+		if disabled {
+			data-disabled="true"
+			aria-disabled="true"
+		}
+		if p.TextValue != "" {
+			aria-label={ p.TextValue }
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+		if group.allowRemove {
+			@defaultRemoveButton()
+		}
+	</div>
+}
+
+// RemoveButton, custom ikonlu kaldırma butonu. AllowRemove kapalıyken Tag içine
+// elle konur; içine istediğiniz ikonu geçin.
+templ RemoveButton(tw ...string) {
+	<button
+		type="button"
+		class={ utils.Cn("tag__remove-button", tw) }
+		data-slot="tag-remove-button"
+		aria-label="Remove"
+	>
+		{ children... }
+	</button>
+}
+
+// defaultRemoveButton, AllowRemove açıkken otomatik basılan varsayılan X butonu.
+templ defaultRemoveButton() {
+	@RemoveButton() {
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+			<path d="M18 6 6 18"></path>
+			<path d="m6 6 12 12"></path>
+		</svg>
+	}
+}

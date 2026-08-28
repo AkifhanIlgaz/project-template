@@ -1,0 +1,227 @@
+package dropdown
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — trigger'a bağlı menü popover'ı.
+//
+//	@(Props{}) {
+//		@Button(ButtonProps{Variant: ButtonVariantSecondary}) { Actions }
+//		@Popover() {
+//			@Menu(MenuProps{}) {
+//				@Item(ItemProps{ID: "new-file"}) {
+//					@Label(LabelProps{}) { New file }
+//				}
+//			}
+//		}
+//	}
+//
+// Trigger, React'teki gibi root'un popover dışındaki ilk buton çocuğudur.
+// Açma/kapama, konumlandırma ve seçim static/js/dropdown.js'te
+// (data-entering/exiting animasyonları alert_dialog.js'teki afterAnimations'ı
+// kullanır; script sırası layout.templ'de buna göre dizilidir).
+// Seçim davranışı React Aria ile aynı: none/single'da menü item seçince
+// kapanır, multiple'da açık kalır. React'e özgü selectedKeys/onAction ve
+// SubmenuTrigger (iç içe menü) yoktur; aksiyonlar Attrs (ör. htmx) ile bağlanır.
+
+type dropdownCtxKey int
+
+const dropdownMenuKey dropdownCtxKey = iota
+
+type MenuProps struct {
+	SelectionMode SelectionMode // default: none
+	Attrs         templ.Attributes
+}
+
+type SelectionMode string
+
+const (
+	SelectionModeNone     SelectionMode = "none"
+	SelectionModeSingle   SelectionMode = "single"
+	SelectionModeMultiple SelectionMode = "multiple"
+)
+
+func (m SelectionMode) String() string {
+	if m == "" {
+		return string(SelectionModeNone)
+	}
+	return string(m)
+}
+
+type Variant string
+
+const (
+	VariantDefault Variant = "default"
+	VariantDanger  Variant = "danger"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantDefault)
+	}
+	return string(v)
+}
+
+type ItemProps struct {
+	// ID, React'teki item key karşılığı; data-id olarak basılır.
+	ID              string
+	Variant         Variant // menu-item--default | menu-item--danger
+	DefaultSelected bool
+	IsDisabled      bool
+	Attrs           templ.Attributes
+}
+
+type dropdownItemCtx struct {
+	menu MenuProps
+	item ItemProps
+}
+
+func dropdownItem(ctx context.Context) dropdownItemCtx {
+	if c, ok := ctx.Value(dropdownMenuKey).(dropdownItemCtx); ok {
+		return c
+	}
+	return dropdownItemCtx{}
+}
+
+type Props struct {
+	Attrs templ.Attributes
+}
+
+templ Dropdown(p Props, tw ...string) {
+	<div
+		class={ utils.Cn("dropdown", tw) }
+		data-slot="dropdown"
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Popover(tw ...string) {
+	<div
+		class={ utils.Cn("dropdown__popover", tw) }
+		data-slot="dropdown-popover"
+		data-placement="bottom"
+		hidden
+	>
+		{ children... }
+	</div>
+}
+
+templ Menu(p MenuProps, tw ...string) {
+	{{	ctx = context.WithValue(ctx, dropdownMenuKey, dropdownItemCtx{menu: p})}}
+	<div
+		class={ utils.Cn("dropdown__menu", tw) }
+		data-slot="dropdown-menu"
+		role="menu"
+		data-selection-mode={ p.SelectionMode.String() }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Item(p ItemProps, tw ...string) {
+	{{
+	c := dropdownItem(ctx)
+	c.item = p
+	if p.Variant == "" {
+		p.Variant = VariantDefault
+	}
+	ctx = context.WithValue(ctx, dropdownMenuKey, c)
+	role := "menuitem"
+	switch c.menu.SelectionMode {
+	case SelectionModeSingle:
+		role = "menuitemradio"
+	case SelectionModeMultiple:
+		role = "menuitemcheckbox"
+	}
+	}}
+	<div
+		class={ utils.Cn("menu-item", "menu-item--"+p.Variant.String(), tw) }
+		data-slot="menu-item"
+		role={ role }
+		data-selection-mode={ c.menu.SelectionMode.String() }
+		if p.ID != "" {
+			data-id={ p.ID }
+		}
+		if c.menu.SelectionMode != SelectionModeNone {
+			aria-checked={ utils.BoolStr(p.DefaultSelected) }
+		}
+		if p.DefaultSelected {
+			data-selected="true"
+		}
+		if p.IsDisabled {
+			data-disabled="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// ItemIndicator, seçili durumda görünen checkmark'ı render eder.
+templ ItemIndicator(tw ...string) {
+	{{ c := dropdownItem(ctx) }}
+	<span
+		class={ utils.Cn("menu-item__indicator", tw) }
+		data-slot="menu-item-indicator"
+		data-type="checkmark"
+		aria-hidden="true"
+		if c.item.DefaultSelected {
+			data-visible="true"
+		}
+	>
+		<svg
+			data-slot="menu-item-indicator--checkmark"
+			viewBox="0 0 17 18"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			stroke-dasharray="22"
+			stroke-dashoffset={ utils.If(c.item.DefaultSelected, "44", "66") }
+			aria-hidden="true"
+		>
+			<polyline points="1 9 7 14 15 4"></polyline>
+		</svg>
+	</span>
+}
+
+// ItemDotIndicator, checkmark yerine dot ikonu kullanır
+// (React'teki type="dot" karşılığı; görünürlük CSS'ten data-selected ile gelir).
+templ ItemDotIndicator(tw ...string) {
+	{{ c := dropdownItem(ctx) }}
+	<span
+		class={ utils.Cn("menu-item__indicator", tw) }
+		data-slot="menu-item-indicator"
+		data-type="dot"
+		aria-hidden="true"
+		if c.item.DefaultSelected {
+			data-visible="true"
+		}
+	>
+		<svg
+			data-slot="menu-item-indicator--dot"
+			viewBox="0 0 16 16"
+			fill="currentColor"
+			aria-hidden="true"
+		>
+			<path fill-rule="evenodd" clip-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14"></path>
+		</svg>
+	</span>
+}
+
+templ Section(tw ...string) {
+	<div
+		class={ utils.Cn("menu-section", tw) }
+		data-slot="menu-section"
+		role="group"
+	>
+		{ children... }
+	</div>
+}

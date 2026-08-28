@@ -1,0 +1,107 @@
+package alert
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/statusicon"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+type alertCtxKey int
+
+const alertRootKey alertCtxKey = 0
+
+type Status string
+
+const (
+	StatusDefault Status = "default"
+	StatusAccent  Status = "accent"
+	StatusSuccess Status = "success"
+	StatusWarning Status = "warning"
+	StatusDanger  Status = "danger"
+)
+
+func (s Status) String() string {
+	if s == "" {
+		return StatusDefault.String()
+	}
+
+	return string(s)
+}
+
+type Props struct {
+	Status Status
+	Attrs  templ.Attributes
+}
+
+func alertRoot(ctx context.Context) Props {
+	if p, ok := ctx.Value(alertRootKey).(Props); ok {
+		return p
+	}
+
+	return Props{Status: StatusDefault}
+}
+
+
+
+templ Alert(p Props, tw ...string) {
+	{{ctx = context.WithValue(ctx, alertRootKey, p)}}
+
+	<div
+		class={ templ.SafeClass(utils.Cn("alert", "alert--"+p.Status.String(), tw)) }
+		data-slot="alert-root"
+		role="alert"
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// AlertIndicator, status'a uygun varsayılan ikonu gösterir.
+templ Indicator(tw ...string) {
+	{{ root := alertRoot(ctx) }}
+
+	<div
+		class={ utils.Cn("alert__indicator", tw) }
+		data-slot="alert-indicator"
+	>
+		@alertDefaultIcon(root.Status)
+	</div>
+}
+
+// AlertIndicatorCustom, React'teki <Alert.Indicator>{icon}</Alert.Indicator> kullanımının
+// karşılığı: varsayılan status ikonu yerine verdiğiniz içeriği gösterir (ör. Spinner).
+templ IndicatorCustom(tw ...string) {
+	<div
+		class={ utils.Cn("alert__indicator", tw) }
+		data-slot="alert-indicator"
+	>
+		{ children... }
+	</div>
+}
+
+templ Content(tw ...string) {
+	<div
+		class={ utils.Cn("alert__content", tw) }
+		data-slot="alert-content"
+	>
+		{ children... }
+	</div>
+}
+
+templ Title(tw ...string) {
+	<p class={ utils.Cn("alert__title", tw) } data-slot="alert-title">
+		{ children... }
+	</p>
+}
+
+templ Description(tw ...string) {
+	<span class={ utils.Cn("alert__description", tw) } data-slot="alert-description">
+		{ children... }
+	</span>
+}
+
+// AlertDefaultIcon, status'a uygun varsayılan ikon (ortak statusIcon'u kullanır).
+templ alertDefaultIcon(status Status) {
+	@statusicon.StatusIcon("alert-default-icon", status.String())
+}

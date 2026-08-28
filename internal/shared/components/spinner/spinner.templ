@@ -1,0 +1,102 @@
+package spinner
+
+import (
+	"strconv"
+	"sync/atomic"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — span.spinner içinde gradient'li dönen SVG.
+//
+//	@(Props{Size: SizeSm})
+//
+// SVG gradient tanımları id ile referanslandığından her instance'a
+// benzersiz id üretilir (React'teki useId karşılığı).
+
+type Color string
+
+const (
+	ColorAccent  Color = "accent"
+	ColorCurrent Color = "current"
+	ColorDanger  Color = "danger"
+	ColorSuccess Color = "success"
+	ColorWarning Color = "warning"
+)
+
+func (c Color) String() string {
+	return string(c)
+}
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+	SizeXl Size = "xl"
+)
+
+func (s Size) String() string {
+	return string(s)
+}
+
+type Props struct {
+	Color Color // default: accent
+	Size  Size  // default: md
+	Attrs templ.Attributes
+}
+
+var spinnerIDCounter atomic.Uint64
+
+func spinnerID() string {
+	return "spinner-grad-" + strconv.FormatUint(spinnerIDCounter.Add(1), 10)
+}
+
+templ Spinner(p Props, tw ...string) {
+	{{
+	if p.Color == "" {
+		p.Color = ColorAccent
+	}
+	if p.Size == "" {
+		p.Size = SizeMd
+	}
+	id := spinnerID()
+	}}
+	<span
+		class={ templ.SafeClass(utils.Cn(
+			"spinner",
+			"spinner--"+p.Color.String(),
+			"spinner--"+p.Size.String(),
+			tw,
+		)) }
+		data-slot="spinner"
+		{ p.Attrs... }
+	>
+		<svg data-slot="spinner-icon" viewBox="0 0 24 24" aria-hidden="true" role="presentation">
+			<defs>
+				<linearGradient id={ id + "-1" } x1="50%" x2="50%" y1="5.271%" y2="91.793%">
+					<stop offset="0%" stop-color="currentColor"></stop>
+					<stop offset="100%" stop-color="currentColor" stop-opacity="0.55"></stop>
+				</linearGradient>
+				<linearGradient id={ id + "-2" } x1="50%" x2="50%" y1="15.24%" y2="87.15%">
+					<stop offset="0%" stop-color="currentColor" stop-opacity="0"></stop>
+					<stop offset="100%" stop-color="currentColor" stop-opacity="0.55"></stop>
+				</linearGradient>
+			</defs>
+			<g fill="none">
+				<path d="m12.593 23.258-.011.002-.071.035-.02.004-.014-.004-.071-.035q-.016-.005-.024.005l-.004.01-.017.428.005.02.01.013.104.074.015.004.012-.004.104-.074.012-.016.004-.017-.017-.427q-.004-.016-.017-.018m.265-.113-.013.002-.185.093-.01.01-.003.011.018.43.005.012.008.007.201.093q.019.005.029-.008l.004-.014-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014-.034.614q.001.018.017.024l.015-.002.201-.093.01-.008.004-.011.017-.43-.003-.012-.01-.01z"></path>
+				<path
+					d="M8.749.021a1.5 1.5 0 0 1 .497 2.958A7.5 7.5 0 0 0 3 10.375a7.5 7.5 0 0 0 7.5 7.5v3c-5.799 0-10.5-4.7-10.5-10.5C0 5.23 3.726.865 8.749.021"
+					fill={ "url(#" + id + "-1)" }
+					transform="translate(1.5 1.625)"
+				></path>
+				<path
+					d="M15.392 2.673a1.5 1.5 0 0 1 2.119-.115A10.48 10.48 0 0 1 21 10.375c0 5.8-4.701 10.5-10.5 10.5v-3a7.5 7.5 0 0 0 5.007-13.084a1.5 1.5 0 0 1-.115-2.118"
+					fill={ "url(#" + id + "-2)" }
+					transform="translate(1.5 1.625)"
+				></path>
+			</g>
+		</svg>
+	</span>
+}

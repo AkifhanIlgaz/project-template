@@ -1,0 +1,137 @@
+package meter
+
+import (
+	"context"
+	"math"
+	"strconv"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — bilinen bir aralıktaki miktarı gösterir.
+//
+//	@(Props{Value: 60}) {
+//		@Label(LabelProps{}) { Storage }
+//		@Output()
+//		@Track() {
+//			@Fill()
+//		}
+//	}
+//
+// Görünür Label yoksa erişilebilirlik için Attrs ile aria-label verin.
+
+type Color string
+
+const (
+	ColorAccent  Color = "accent"
+	ColorDanger  Color = "danger"
+	ColorDefault Color = "default"
+	ColorSuccess Color = "success"
+	ColorWarning Color = "warning"
+)
+
+func (c Color) String() string {
+	return string(c)
+}
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	return string(s)
+}
+
+type Props struct {
+	Value float64
+	// MinValue/MaxValue aralığı belirler; ikisi de sıfırsa 0-100 kabul edilir.
+	MinValue float64
+	MaxValue float64
+	// ValueText, Output'ta ve aria-valuetext'te gösterilecek metni override eder
+	// (React'teki formatOptions karşılığı; ör. "$750.00"). Boşsa yüzde yazılır.
+	ValueText string
+	Color     Color // default: accent
+	Size      Size  // default: md
+	Attrs     templ.Attributes
+}
+
+type meterCtxKey int
+
+const meterStateKey meterCtxKey = 0
+
+type meterState struct {
+	percentage float64
+	valueText  string
+}
+
+func meterCtx(ctx context.Context) meterState {
+	if s, ok := ctx.Value(meterStateKey).(meterState); ok {
+		return s
+	}
+	return meterState{}
+}
+
+templ Meter(p Props, tw ...string) {
+	{{
+	if p.Color == "" {
+		p.Color = ColorAccent
+	}
+	if p.Size == "" {
+		p.Size = SizeMd
+	}
+	if p.MinValue == 0 && p.MaxValue == 0 {
+		p.MaxValue = 100
+	}
+	pct := 0.0
+	if p.MaxValue > p.MinValue {
+		pct = (p.Value - p.MinValue) / (p.MaxValue - p.MinValue) * 100
+	}
+	pct = math.Max(0, math.Min(100, pct))
+	if p.ValueText == "" {
+		p.ValueText = strconv.FormatFloat(math.Round(pct), 'f', -1, 64) + "%"
+	}
+	ctx = context.WithValue(ctx, meterStateKey, meterState{percentage: pct, valueText: p.ValueText})
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn(
+			"meter",
+			"meter--"+p.Color.String(),
+			"meter--"+p.Size.String(),
+			tw,
+		)) }
+		data-slot="meter"
+		role="meter"
+		aria-valuenow={ strconv.FormatFloat(p.Value, 'f', -1, 64) }
+		aria-valuemin={ strconv.FormatFloat(p.MinValue, 'f', -1, 64) }
+		aria-valuemax={ strconv.FormatFloat(p.MaxValue, 'f', -1, 64) }
+		aria-valuetext={ p.ValueText }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// Output, root'taki ValueText'i (yoksa yüzdeyi) gösterir.
+templ Output(tw ...string) {
+	<span class={ templ.SafeClass(utils.Cn("meter__output", tw)) } data-slot="meter-output">
+		{ meterCtx(ctx).valueText }
+	</span>
+}
+
+templ Track(tw ...string) {
+	<div class={ templ.SafeClass(utils.Cn("meter__track", tw)) } data-slot="meter-track">
+		{ children... }
+	</div>
+}
+
+templ Fill(tw ...string) {
+	<div
+		class={ templ.SafeClass(utils.Cn("meter__fill", tw)) }
+		data-slot="meter-fill"
+		style={ "width: " + strconv.FormatFloat(meterCtx(ctx).percentage, 'f', -1, 64) + "%" }
+	></div>
+}

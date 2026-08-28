@@ -1,0 +1,130 @@
+package switchui
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 Switch — boolean durumlar için aç/kapa anahtarı.
+// Paket adı `switchui`; `switch` Go'da ayrılmış bir sözcük olduğu için kullanılamaz.
+//
+// Anatomi:
+//
+//	@switchui.Switch(switchui.Props{}) {
+//		@switchui.Content() {
+//			@switchui.Control() {
+//				@switchui.Thumb() {
+//					@switchui.Icon() { ... } // opsiyonel
+//				}
+//			}
+//			Enable notifications
+//		}
+//		@components.Description() { ... } // opsiyonel
+//		@components.FieldError() { ... }  // opsiyonel
+//	}
+//
+// Content, gizli native input barındıran bir <label>'dır; açık/kapalı durumu
+// (root'taki data-selected + thumb konumu) static/js/switch.js'teki change
+// dinleyicisiyle senkronlanır. React'e özgü isSelected/onChange (controlled
+// state) yoktur; başlangıç durumu IsSelected ile verilir.
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	if s == "" {
+		return string(SizeMd)
+	}
+	return string(s)
+}
+
+type switchCtxKey int
+
+const switchRootKey switchCtxKey = 0
+
+type Props struct {
+	Size       Size // default: md
+	Name       string
+	Value      string
+	ID         string
+	IsSelected bool
+	IsDisabled bool
+	IsInvalid  bool
+	IsRequired bool
+	Attrs      templ.Attributes
+}
+
+func switchRoot(ctx context.Context) Props {
+	if p, ok := ctx.Value(switchRootKey).(Props); ok {
+		return p
+	}
+	return Props{}
+}
+
+templ Switch(p Props, tw ...string) {
+	{{
+	group := switchGroup(ctx)
+	p.IsDisabled = p.IsDisabled || group.IsDisabled
+	ctx = context.WithValue(ctx, switchRootKey, p)
+	}}
+	<div
+		class={ utils.Cn("switch", "switch--"+p.Size.String(), tw) }
+		data-slot="switch"
+		data-selected={ utils.BoolStr(p.IsSelected) }
+		data-disabled={ utils.BoolStr(p.IsDisabled) }
+		data-invalid={ utils.BoolStr(p.IsInvalid) }
+		data-required={ utils.BoolStr(p.IsRequired) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Content(tw ...string) {
+	{{ root := switchRoot(ctx) }}
+	<label class={ utils.Cn("switch__content", tw) } data-slot="switch-content">
+		<input
+			type="checkbox"
+			role="switch"
+			class="sr-only"
+			checked?={ root.IsSelected }
+			disabled?={ root.IsDisabled }
+			required?={ root.IsRequired }
+			if root.Name != "" {
+				name={ root.Name }
+			}
+			if root.Value != "" {
+				value={ root.Value }
+			}
+			if root.ID != "" {
+				id={ root.ID }
+			}
+		/>
+		{ children... }
+	</label>
+}
+
+templ Control(tw ...string) {
+	<span class={ utils.Cn("switch__control", tw) } data-slot="switch-control">
+		{ children... }
+	</span>
+}
+
+templ Thumb(tw ...string) {
+	<span class={ utils.Cn("switch__thumb", tw) } data-slot="switch-thumb">
+		{ children... }
+	</span>
+}
+
+// Icon, thumb içinde gösterilen opsiyonel ikon(lar)ı sarar.
+templ Icon(tw ...string) {
+	<span class={ utils.Cn("switch__icon", tw) } data-slot="switch-icon" aria-hidden="true">
+		{ children... }
+	</span>
+}

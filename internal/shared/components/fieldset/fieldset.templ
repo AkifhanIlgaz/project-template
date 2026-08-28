@@ -1,0 +1,43 @@
+package fieldset
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3 Fieldset — legend, açıklama, alan grubu ve aksiyonlarla ilişkili
+// form kontrollerini gruplar. Native <fieldset>/<legend> semantiği kullanır.
+//
+//	@fieldset.Fieldset() {
+//		@fieldset.Legend() { Profile Settings }
+//		@components.Description() { Update your profile information. }
+//		@fieldset.Group() {
+//			@textfield.TextField(...) { ... }
+//		}
+//		@fieldset.Actions() {
+//			@button.Button(button.Props{}) { Save }
+//		}
+//	}
+
+templ Fieldset(tw ...string) {
+	<fieldset class={ utils.Cn("fieldset", tw) } data-slot="fieldset">
+		{ children... }
+	</fieldset>
+}
+
+templ Legend(tw ...string) {
+	<legend class={ utils.Cn("fieldset__legend", tw) } data-slot="legend">
+		{ children... }
+	</legend>
+}
+
+// Group, gruplanan alanların sarmalayıcısıdır (fieldset__field_group).
+templ Group(tw ...string) {
+	<div class={ utils.Cn("fieldset__field_group", tw) } data-slot="field-group">
+		{ children... }
+	</div>
+}
+
+// Actions, alanların altındaki aksiyon çubuğudur (butonlar / yardımcı metin).
+templ Actions(tw ...string) {
+	<div class={ utils.Cn("fieldset__actions", tw) } data-slot="actions">
+		{ children... }
+	</div>
+}

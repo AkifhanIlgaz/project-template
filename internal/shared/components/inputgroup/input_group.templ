@@ -1,0 +1,162 @@
+package inputgroup
+
+import (
+	"strconv"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/textfield"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 InputGroup — bir input alanını prefix/suffix elemanlarıyla (ikon,
+// metin, buton) görsel olarak birleştirir. Genelde TextField içinde kullanılır
+// ve invalid/disabled/name/value durumlarını TextField'dan context ile miras
+// alır.
+//
+//	@textfield.TextField(textfield.Props{Name: "email"}) {
+//		@components.Label(components.LabelProps{}) { Email }
+//		@inputgroup.InputGroup(inputgroup.Props{}) {
+//			@inputgroup.Prefix() { @EnvelopeIcon() }
+//			@inputgroup.Input(inputgroup.InputProps{Placeholder: "name@email.com"})
+//		}
+//	}
+//
+// Tek satırlık giriş için Input, çok satırlı için TextArea kullanın.
+
+type Variant string
+
+const (
+	VariantPrimary   Variant = "primary"
+	VariantSecondary Variant = "secondary"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantPrimary)
+	}
+	return string(v)
+}
+
+type Props struct {
+	// Variant boşsa primary. secondary, surface üzerinde düşük vurgulu stildir.
+	Variant   Variant
+	FullWidth bool
+	Attrs     templ.Attributes
+}
+
+templ InputGroup(p Props, tw ...string) {
+	{{
+	field := textfield.Field(ctx)
+	}}
+	<div
+		class={ utils.Cn(
+			"input-group",
+			utils.If(p.Variant == VariantSecondary, "input-group--secondary", ""),
+			utils.If(p.FullWidth, "input-group--full-width", ""),
+			tw,
+		) }
+		data-slot="input-group"
+		role="group"
+		data-invalid={ utils.BoolStr(field.IsInvalid) }
+		data-disabled={ utils.BoolStr(field.IsDisabled) }
+		if field.IsInvalid {
+			aria-invalid="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// Prefix, input'tan önce gelen eleman (ikon veya metin).
+templ Prefix(tw ...string) {
+	<span class={ utils.Cn("input-group__prefix", tw) } data-slot="input-group-prefix">
+		{ children... }
+	</span>
+}
+
+// Suffix, input'tan sonra gelen eleman (ikon, buton, badge).
+templ Suffix(tw ...string) {
+	<span class={ utils.Cn("input-group__suffix", tw) } data-slot="input-group-suffix">
+		{ children... }
+	</span>
+}
+
+type InputProps struct {
+	FullWidth   bool
+	Placeholder string
+	// Aşağıdakiler boşsa TextField context'inden alınır.
+	Name       string
+	Type       string // default: text
+	Value      string
+	IsDisabled bool
+	Attrs      templ.Attributes
+}
+
+templ Input(p InputProps, tw ...string) {
+	{{
+	field := textfield.Field(ctx)
+	name := utils.If(p.Name != "", p.Name, field.Name)
+	typ := utils.If(p.Type != "", p.Type, field.Type)
+	if typ == "" {
+		typ = "text"
+	}
+	value := utils.If(p.Value != "", p.Value, field.Value)
+	disabled := p.IsDisabled || field.IsDisabled
+	}}
+	<input
+		class={ utils.Cn("input-group__input", utils.If(p.FullWidth, "w-full", ""), tw) }
+		data-slot="input-group-input"
+		type={ typ }
+		if name != "" {
+			name={ name }
+		}
+		if p.Placeholder != "" {
+			placeholder={ p.Placeholder }
+		}
+		if value != "" {
+			value={ value }
+		}
+		disabled?={ disabled }
+		if field.IsRequired {
+			required
+		}
+		{ p.Attrs... }
+	/>
+}
+
+type TextAreaProps struct {
+	Placeholder string
+	Rows        int
+	// Aşağıdakiler boşsa TextField context'inden alınır.
+	Name       string
+	Value      string
+	IsDisabled bool
+	Attrs      templ.Attributes
+}
+
+templ TextArea(p TextAreaProps, tw ...string) {
+	{{
+	field := textfield.Field(ctx)
+	name := utils.If(p.Name != "", p.Name, field.Name)
+	value := utils.If(p.Value != "", p.Value, field.Value)
+	disabled := p.IsDisabled || field.IsDisabled
+	}}
+	<textarea
+		class={ utils.Cn("input-group__input", tw) }
+		data-slot="input-group-textarea"
+		if name != "" {
+			name={ name }
+		}
+		if p.Placeholder != "" {
+			placeholder={ p.Placeholder }
+		}
+		if p.Rows > 0 {
+			rows={ strconv.Itoa(p.Rows) }
+		}
+		disabled?={ disabled }
+		if field.IsRequired {
+			required
+		}
+		{ p.Attrs... }
+	>{ value }</textarea>
+}

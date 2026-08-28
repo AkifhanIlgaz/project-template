@@ -1,0 +1,60 @@
+package toolbar
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3 Toolbar — etkileşimli kontrolleri (ButtonGroup, ToggleButtonGroup,
+// Separator ...) tek bir kapta toplar; ok tuşlarıyla gezinme sağlar (toolbar.js).
+//
+//	@Toolbar(Props{AriaLabel: "Text formatting"}) {
+//		@togglebutton.ToggleButtonGroup(...) { ... }
+//		@separator.Separator(separator.Props{Orientation: separator.OrientationVertical})
+//		@button.ButtonGroup(...) { ... }
+//	}
+//
+// Toolbar yalnızca layout + rol + klavye gezintisi verir; içindeki bileşenler
+// kendi görünümlerini korur. Dikey yönde Separator otomatik yatay çizilmez —
+// örneklerde Orientation'ı açıkça verin.
+
+type Orientation string
+
+const (
+	OrientationHorizontal Orientation = "horizontal"
+	OrientationVertical   Orientation = "vertical"
+)
+
+func (o Orientation) String() string {
+	if o == "" {
+		return string(OrientationHorizontal)
+	}
+
+	return string(o)
+}
+
+type Props struct {
+	// IsAttached, yüzey arka planı + tam yuvarlatma + gölge ekler (gömülü toolbar).
+	IsAttached  bool
+	Orientation Orientation // default: horizontal
+	AriaLabel   string
+	Attrs       templ.Attributes
+}
+
+templ Toolbar(p Props, tw ...string) {
+	<div
+		class={ utils.Cn(
+			"toolbar",
+			"toolbar--"+p.Orientation.String(),
+			utils.If(p.IsAttached, "toolbar--attached", ""),
+			tw,
+		) }
+		data-slot="toolbar"
+		role="toolbar"
+		data-orientation={ p.Orientation.String() }
+		aria-orientation={ p.Orientation.String() }
+		if p.AriaLabel != "" {
+			aria-label={ p.AriaLabel }
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}

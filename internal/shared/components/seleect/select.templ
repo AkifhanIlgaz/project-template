@@ -1,0 +1,217 @@
+package seleect
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — açılır listeden tek/çoklu seçim yapılan alan.
+//
+//	@(Props{Placeholder: " one"}, "w-64") {
+//		@Label(LabelProps{}) { State }
+//		@Trigger() {
+//			@Value(ValueProps{})
+//			@Indicator()
+//		}
+//		@Popover(PopoverProps{}) {
+//			@ListBox(ListBoxProps{}) {
+//				@ListBoxItem(ListBoxItemProps{ID: "florida"}) {
+//					Florida
+//					@ListBoxItemIndicator()
+//				}
+//			}
+//		}
+//	}
+//
+// Trigger her zaman root'un ilk buton çocuğudur. Açma/kapama, konumlandırma
+// ve seçili değerin trigger'a yansıtılması static/js/select.js'te; öğe
+// seçim/checkmark toggle'ı mevcut static/js/list_box.js'in aynı click
+// delegasyonunu paylaşır (select.js yalnızca değer metnini ve kapanışı
+// yönetir). React'e özgü selectedKey/onionChange (controlled state)
+// yoktur; başlangıç değeri Value'nun Text'i ile verilir.
+
+type Variant string
+
+const (
+	VariantPrimary   Variant = "primary"
+	VariantSecondary Variant = "secondary"
+)
+
+func (v Variant) String() string {
+	return string(v)
+}
+
+type selectCtxKey int
+
+const selectRootKey selectCtxKey = 0
+
+type Props struct {
+	Variant     Variant // default: primary
+	FullWidth   bool
+	Placeholder string
+	IsDisabled  bool
+	IsInvalid   bool
+	IsRequired  bool
+	Attrs       templ.Attributes
+}
+
+func selectRoot(ctx context.Context) Props {
+	if p, ok := ctx.Value(selectRootKey).(Props); ok {
+		return p
+	}
+	return Props{}
+}
+
+// inside, ListBox'ın varsayılan ionMode'unu belirlemek için
+// kullanılır: React'teki  örneklerinde iç ListBox'a selectionMode hiç
+// verilmez, çünkü seçim 'in kendi state'i tarafından yönetilir ve
+// varsayılan tektir (yalnızca multiple açıkça istenince belirtilir). Bizim
+// portumuzda state DOM'da tutulduğundan, aynı "varsayılan single" davranışını
+// yakalamak için  içindeki ListBox'ın boş ionMode'unu single'a
+// çeviriyoruz (standalone ListBox'ta varsayılan none olarak kalır).
+func Inside(ctx context.Context) bool {
+	_, ok := ctx.Value(selectRootKey).(Props)
+	return ok
+}
+
+templ Select(p Props, tw ...string) {
+	{{
+	if p.Variant == "" {
+		p.Variant = VariantPrimary
+	}
+	ctx = context.WithValue(ctx, selectRootKey, p)
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn(
+			"select",
+			"select--"+p.Variant.String(),
+			utils.If(p.FullWidth, "select--full-width", ""),
+			tw,
+		)) }
+		data-slot="select"
+		if p.IsDisabled {
+			data-disabled="true"
+		}
+		if p.IsInvalid {
+			data-invalid="true"
+			aria-invalid="true"
+		}
+		if p.IsRequired {
+			data-required="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Trigger(tw ...string) {
+	{{ root := selectRoot(ctx) }}
+	<button
+		type="button"
+		class={ templ.SafeClass(utils.Cn(
+			"select__trigger",
+			utils.If(root.FullWidth, "select__trigger--full-width", ""),
+			tw,
+		)) }
+		data-slot="select-trigger"
+		aria-haspopup="listbox"
+		aria-expanded="false"
+		disabled?={ root.IsDisabled }
+	>
+		{ children... }
+	</button>
+}
+
+type ValueProps struct {
+	// Text, seçili öğenin görünen metni; boşsa root'un Placeholder'ı gösterilir.
+	Text string
+}
+
+templ Value(p ValueProps) {
+	{{
+	root := selectRoot(ctx)
+	placeholder := p.Text == ""
+	text := p.Text
+	if placeholder {
+		text = root.Placeholder
+	}
+	}}
+	<span
+		class="select__value"
+		data-slot="select-value"
+		if placeholder {
+			data-placeholder="true"
+		}
+	>
+		{ text }
+	</span>
+}
+
+// Indicator, varsayılan chevron-down ikonunu render eder.
+templ Indicator(tw ...string) {
+	<svg
+		class={ templ.SafeClass(utils.Cn("select__indicator", tw)) }
+		data-slot="select-default-indicator"
+		data-open="false"
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"
+	>
+		<path d="m6 9 6 6 6-6"></path>
+	</svg>
+}
+
+// IndicatorCustom, varsayılan chevron yerine verdiğiniz içeriği gösterir.
+templ IndicatorCustom(tw ...string) {
+	<span
+		class={ templ.SafeClass(utils.Cn("select__indicator", tw)) }
+		data-slot="select-indicator"
+		data-open="false"
+		aria-hidden="true"
+	>
+		{ children... }
+	</span>
+}
+
+type PopoverPlacement string
+
+const (
+	PopoverPlacementTop    PopoverPlacement = "top"
+	PopoverPlacementBottom PopoverPlacement = "bottom"
+	PopoverPlacementLeft   PopoverPlacement = "left"
+	PopoverPlacementRight  PopoverPlacement = "right"
+)
+
+func (p PopoverPlacement) String() string {
+	return string(p)
+}
+
+type PopoverProps struct {
+	Placement PopoverPlacement // default: bottom
+	Attrs     templ.Attributes
+}
+
+templ Popover(p PopoverProps, tw ...string) {
+	{{
+	if p.Placement == "" {
+		p.Placement = PopoverPlacementBottom
+	}
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn("select__popover", tw)) }
+		data-slot="select-popover"
+		data-placement={ p.Placement.String() }
+		role="listbox"
+		hidden
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}

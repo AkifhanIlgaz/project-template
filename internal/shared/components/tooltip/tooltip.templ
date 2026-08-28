@@ -1,0 +1,155 @@
+package tooltip
+
+import (
+	"strconv"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 Tooltip — trigger'a hover/focus ile açılan kısa bilgi baloncuğu.
+//
+//	@(Props{}) {
+//		@Trigger() {
+//			@button.Button(button.Props{Variant: button.VariantSecondary}) { Hover me }
+//		}
+//		@Content(ContentProps{ShowArrow: true}) {
+//			@Arrow()
+//			<p>This is a tooltip</p>
+//		}
+//	}
+//
+// Trigger, popover'daki gibi root'un content dışındaki [data-slot="tooltip-trigger"]
+// veya ilk buton çocuğudur. Açma/kapama (hover/focus + gecikme), konumlandırma ve
+// ok yerleşimi static/js/tooltip.js'te; data-entering/exiting animasyonları
+// alert_dialog.js'teki afterAnimations/afterOwnAnimations'ı kullanır (script sırası
+// layout.templ'de buna göre dizilidir). React'e özgü portal yoktur: content, root'a
+// göre absolute konumlanır. React'te delay/closeDelay varsayılanı 1500/500'dür; bu
+// portta zero-değer semantiği için varsayılan 0'dır (anında), böylece HeroUI
+// örneklerindeki delay={0} davranışı ifade edilebilir. Gecikme için Delay/CloseDelay verilir.
+
+type TriggerMode string
+
+const (
+	TriggerModeHover TriggerMode = "hover"
+	TriggerModeFocus TriggerMode = "focus"
+)
+
+func (t TriggerMode) String() string {
+	if t == "" {
+		return string(TriggerModeHover)
+	}
+	return string(t)
+}
+
+type Props struct {
+	// Delay, tooltip görünmeden önceki bekleme (ms, default 0 = anında).
+	Delay int
+	// CloseDelay, tooltip kapanmadan önceki bekleme (ms); 0 verilirse titremeyi
+	// önlemek için kısa bir varsayılana çekilir.
+	CloseDelay int
+	Trigger    TriggerMode // default: hover
+	IsDisabled bool
+	Attrs      templ.Attributes
+}
+
+templ Tooltip(p Props, tw ...string) {
+	{{
+	if p.CloseDelay == 0 {
+		p.CloseDelay = 150
+	}
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn("relative w-fit", tw)) }
+		data-slot="tooltip-root"
+		data-delay={ strconv.Itoa(p.Delay) }
+		data-close-delay={ strconv.Itoa(p.CloseDelay) }
+		data-trigger={ p.Trigger.String() }
+		if p.IsDisabled {
+			data-disabled="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// Trigger, tooltip'i tetikleyen (hover/focus edilen) içeriği sarar.
+templ Trigger(tw ...string) {
+	<div
+		class={ templ.SafeClass(utils.Cn("tooltip__trigger", tw)) }
+		data-slot="tooltip-trigger"
+		tabindex="0"
+	>
+		{ children... }
+	</div>
+}
+
+type Placement string
+
+const (
+	PlacementTop    Placement = "top"
+	PlacementBottom Placement = "bottom"
+	PlacementLeft   Placement = "left"
+	PlacementRight  Placement = "right"
+)
+
+func (p Placement) String() string {
+	if p == "" {
+		return string(PlacementTop)
+	}
+	return string(p)
+}
+
+type ContentProps struct {
+	Placement Placement // default: top (React Aria ile aynı)
+	// Offset, trigger ile content arasındaki boşluk (px); 0 ise ShowArrow'a göre
+	// 3 (oksuz) veya 7 (oklu) olur.
+	Offset    int
+	ShowArrow bool
+	Attrs     templ.Attributes
+}
+
+templ Content(p ContentProps, tw ...string) {
+	{{
+	if p.Offset == 0 {
+		if p.ShowArrow {
+			p.Offset = 7
+		} else {
+			p.Offset = 3
+		}
+	}
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn("tooltip", "w-max", tw)) }
+		data-slot="tooltip-content"
+		data-placement={ p.Placement.String() }
+		data-offset={ strconv.Itoa(p.Offset) }
+		role="tooltip"
+		hidden
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// Arrow, trigger'ı işaret eden oku render eder; yerleşimi tooltip.js
+// data-placement'a göre yapar, dönüşü CSS (.tooltip) üstlenir. SVG'nin
+// data-slot'u @heroui/styles tooltip.css'in beklediği "overlay-arrow" olmalıdır.
+templ Arrow(tw ...string) {
+	<span
+		class={ templ.SafeClass(utils.Cn("absolute", tw)) }
+		data-slot="tooltip-overlay-arrow-group"
+		aria-hidden="true"
+	>
+		<svg
+			data-slot="overlay-arrow"
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 12 12"
+			width="12"
+			height="12"
+			fill="none"
+		>
+			<path d="M0 0C5.48483 8 6.5 8 12 0Z"></path>
+		</svg>
+	</span>
+}

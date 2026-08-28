@@ -1,0 +1,205 @@
+package tabs
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 Tabs — React compound API'sinin templ karşılığı.
+//
+// Anatomi:
+//
+//	@Tabs(Props{DefaultSelectedKey: "overview"}) {
+//		@ListContainer() {
+//			@List(ListProps{AriaLabel: "Sections"}) {
+//				@Tab(TabProps{ID: "overview"}) { Overview }
+//				@Tab(TabProps{ID: "analytics"}) {
+//					@Separator()
+//					Analytics
+//				}
+//			}
+//		}
+//		@Panel(PanelProps{ID: "overview"}) { ... }
+//		@Panel(PanelProps{ID: "analytics"}) { ... }
+//	}
+//
+// Controlled state YOK; seçili sekme DOM'da tutulur ve tabs.js ile yönetilir.
+// Seçili arka plan pill'i (.tabs__indicator) tek bir elemandır: başlangıçta
+// DefaultSelectedKey sekmesinin içine render edilir, seçim değişince tabs.js onu
+// yeni sekmeye taşır (React Aria SelectionIndicator'ın layout animasyonu gibi).
+// Bu nedenle Indicator ayrı bir parça olarak elle YAZILMAZ — Tab otomatik basar.
+
+type Variant string
+
+const (
+	VariantPrimary   Variant = "primary"
+	VariantSecondary Variant = "secondary"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantPrimary)
+	}
+
+	return string(v)
+}
+
+type Orientation string
+
+const (
+	OrientationHorizontal Orientation = "horizontal"
+	OrientationVertical   Orientation = "vertical"
+)
+
+func (o Orientation) String() string {
+	if o == "" {
+		return string(OrientationHorizontal)
+	}
+
+	return string(o)
+}
+
+type tabsCtxKey int
+
+const tabsRootKey tabsCtxKey = 0
+
+type tabsCtx struct {
+	orientation Orientation
+	variant     Variant
+	selectedKey string
+}
+
+func tabsRoot(ctx context.Context) tabsCtx {
+	if c, ok := ctx.Value(tabsRootKey).(tabsCtx); ok {
+		return c
+	}
+	return tabsCtx{}
+}
+
+type Props struct {
+	Variant            Variant     // default: primary
+	Orientation        Orientation // default: horizontal
+	DefaultSelectedKey string
+	Attrs              templ.Attributes
+}
+
+templ Tabs(p Props, tw ...string) {
+	{{
+	ctx = context.WithValue(ctx, tabsRootKey, tabsCtx{
+		orientation: p.Orientation,
+		variant:     p.Variant,
+		selectedKey: p.DefaultSelectedKey,
+	})
+	}}
+	<div
+		class={ utils.Cn(
+			"tabs",
+			utils.If(p.Variant == VariantSecondary, "tabs--secondary", ""),
+			tw,
+		) }
+		data-slot="tabs"
+		data-orientation={ p.Orientation.String() }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ ListContainer(tw ...string) {
+	<div class={ utils.Cn("tabs__list-container", tw) } data-slot="tabs-list-container">
+		{ children... }
+	</div>
+}
+
+type ListProps struct {
+	AriaLabel string
+	Attrs     templ.Attributes
+}
+
+templ List(p ListProps, tw ...string) {
+	{{ root := tabsRoot(ctx) }}
+	<div
+		class={ utils.Cn("tabs__list", tw) }
+		data-slot="tabs-list"
+		role="tablist"
+		data-orientation={ root.orientation.String() }
+		aria-orientation={ root.orientation.String() }
+		if p.AriaLabel != "" {
+			aria-label={ p.AriaLabel }
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+type TabProps struct {
+	ID         string
+	IsDisabled bool
+	Attrs      templ.Attributes
+}
+
+templ Tab(p TabProps, tw ...string) {
+	{{ selected := tabsRoot(ctx).selectedKey == p.ID && p.ID != "" }}
+	<button
+		type="button"
+		class={ utils.Cn("tabs__tab", tw) }
+		data-slot="tabs-tab"
+		role="tab"
+		if p.ID != "" {
+			id={ "tab-" + p.ID }
+			data-key={ p.ID }
+		}
+		aria-selected={ utils.BoolStr(selected) }
+		if selected {
+			data-selected="true"
+		}
+		disabled?={ p.IsDisabled }
+		if p.IsDisabled {
+			data-disabled="true"
+		}
+		tabindex={ utils.If(selected, "0", "-1") }
+		{ p.Attrs... }
+	>
+		{ children... }
+		if selected {
+			@indicator()
+		}
+	</button>
+}
+
+// indicator, seçili sekmenin arka plan pill'i. tabs.js seçim değişince taşır.
+templ indicator() {
+	<span class="tabs__indicator" data-slot="tabs-indicator" aria-hidden="true"></span>
+}
+
+templ Separator(tw ...string) {
+	<span class={ utils.Cn("tabs__separator", tw) } data-slot="tabs-separator" aria-hidden="true"></span>
+}
+
+type PanelProps struct {
+	ID    string
+	Attrs templ.Attributes
+}
+
+templ Panel(p PanelProps, tw ...string) {
+	{{
+	root := tabsRoot(ctx)
+	selected := root.selectedKey == p.ID && p.ID != ""
+	}}
+	<div
+		class={ utils.Cn("tabs__panel", tw) }
+		data-slot="tabs-panel"
+		role="tabpanel"
+		data-orientation={ root.orientation.String() }
+		if p.ID != "" {
+			id={ "tabpanel-" + p.ID }
+			data-key={ p.ID }
+		}
+		hidden?={ !selected }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}

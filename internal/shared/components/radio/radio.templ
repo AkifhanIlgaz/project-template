@@ -1,0 +1,136 @@
+package radio
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — React compound API'sinin templ karşılığı.
+//
+// Anatomi:
+//
+//	@(Props{Value: "basic"}) {
+//		@Content() {
+//			@Control() {
+//				@Indicator()
+//			}
+//			Basic Plan
+//		}
+//		@Description() { ... }   // opsiyonel, satırın dışında (aria-describedby)
+//		@FieldError() { ... }    // opsiyonel
+//	}
+//
+// Content, gizli native input barındıran bir <label>'dır; seçili durum
+// (:has(input:checked)) tamamen CSS'te çözülür, JS gerekmez. Variant/Name
+// boşsa Group'tan miras alınır; başlangıç checked'i group'un
+// DefaultValue'suna göre otomatik hesaplanır.
+//
+// DİKKAT: root div'e data-selected BASILMAZ (bilinçli). CSS'teki her seçili
+// kural üçlü OR ([data-selected], [aria-checked=true], :has(input:checked))
+// olduğundan, SSR'da hesaplanan data-selected'i statik basmak kullanıcı
+// başka bir radio seçtiğinde temizlenmediği için ilk seçilenin highlight'ı
+// hiç gitmez. :has(input:checked) tek başına canlı ve doğru çalışıyor.
+
+type radioCtxKey int
+
+const radioRootKey radioCtxKey = 0
+
+type Props struct {
+	// Value, form gönderiminde kullanılan değer ve group'un DefaultValue'suyla
+	// eşleşince bu 'nun seçili render edilmesini sağlar.
+	Value      string
+	ID         string
+	IsDisabled bool
+	IsInvalid  bool
+	IsRequired bool
+	Attrs      templ.Attributes
+}
+
+type radioRootCtx struct {
+	group      GroupProps
+	value      string
+	isSelected bool
+	isDisabled bool
+}
+
+func radioRoot(ctx context.Context) radioRootCtx {
+	if c, ok := ctx.Value(radioRootKey).(radioRootCtx); ok {
+		return c
+	}
+	return radioRootCtx{}
+}
+
+templ Radio(p Props, tw ...string) {
+	{{
+	group := radioGroup(ctx)
+	selected := group.DefaultValue != "" && group.DefaultValue == p.Value
+	disabled := p.IsDisabled || group.IsDisabled
+	invalid := p.IsInvalid || group.IsInvalid
+	ctx = context.WithValue(ctx, radioRootKey, radioRootCtx{
+		group:      group,
+		value:      p.Value,
+		isSelected: selected,
+		isDisabled: disabled,
+	})
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn("radio", tw)) }
+		data-slot="radio"
+		if disabled {
+			data-disabled="true"
+		}
+		if invalid {
+			data-invalid="true"
+			aria-invalid="true"
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Content(tw ...string) {
+	{{
+	root := radioRoot(ctx)
+	name := root.group.Name
+	}}
+	<label class={ templ.SafeClass(utils.Cn("radio__content", tw)) } data-slot="radio-content">
+		<input
+			type="radio"
+			class="sr-only"
+			checked?={ root.isSelected }
+			disabled?={ root.isDisabled }
+			if name != "" {
+				name={ name }
+			}
+			if root.value != "" {
+				value={ root.value }
+			}
+		/>
+		{ children... }
+	</label>
+}
+
+templ Control(tw ...string) {
+	<span class={ templ.SafeClass(utils.Cn("radio__control", tw)) } data-slot="radio-control">
+		{ children... }
+	</span>
+}
+
+// Indicator, varsayılan noktayı render eder; boş bırakılan span'i CSS
+// (:empty::before) doldurur, bu yüzden hiçbir children basılmaz.
+templ Indicator() {
+	<span class="radio__indicator" data-slot="radio-indicator" aria-hidden="true"></span>
+}
+
+// IndicatorCustom, varsayılan nokta yerine verdiğiniz içeriği gösterir.
+templ IndicatorCustom(tw ...string) {
+	<span
+		class={ templ.SafeClass(utils.Cn("radio__indicator", tw)) }
+		data-slot="radio-indicator"
+		aria-hidden="true"
+	>
+		{ children... }
+	</span>
+}

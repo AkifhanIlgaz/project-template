@@ -1,0 +1,89 @@
+package textarea
+
+import (
+	"strconv"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/textfield"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 TextArea — çok satırlı metin girişi. Tek başına ya da TextField
+// içinde kullanılabilir; TextField içindeyken variant/name/value/disabled/
+// required/invalid değerlerini context'ten miras alır.
+//
+//	@textfield.TextField(textfield.Props{Name: "bio"}) {
+//		@components.Label(components.LabelProps{}) { Bio }
+//		@textarea.TextArea(textarea.Props{Placeholder: "Tell us about yourself", Rows: 4})
+//	}
+//
+// React'e özgü value/onChange (controlled state) yoktur; başlangıç değeri Value
+// ile verilir.
+
+type Variant string
+
+const (
+	VariantPrimary   Variant = "primary"
+	VariantSecondary Variant = "secondary"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantPrimary)
+	}
+	return string(v)
+}
+
+type Props struct {
+	// Variant boşsa TextField'dan miras alınır (yoksa primary).
+	Variant     Variant
+	FullWidth   bool
+	Placeholder string
+	Rows        int
+	// Aşağıdakiler boşsa TextField context'inden alınır.
+	Name       string
+	Value      string
+	IsDisabled bool
+	IsRequired bool
+	IsInvalid  bool
+	Attrs      templ.Attributes
+}
+
+templ TextArea(p Props, tw ...string) {
+	{{
+	field := textfield.Field(ctx)
+	variant := p.Variant.String()
+	if p.Variant == "" && field.Variant != "" {
+		variant = field.Variant.String()
+	}
+	name := utils.If(p.Name != "", p.Name, field.Name)
+	value := utils.If(p.Value != "", p.Value, field.Value)
+	disabled := p.IsDisabled || field.IsDisabled
+	required := p.IsRequired || field.IsRequired
+	invalid := p.IsInvalid || field.IsInvalid
+	}}
+	<textarea
+		class={ utils.Cn(
+			"textarea",
+			"textarea--"+variant,
+			utils.If(p.FullWidth, "textarea--full-width", ""),
+			tw,
+		) }
+		data-slot="textarea"
+		if name != "" {
+			name={ name }
+		}
+		if p.Placeholder != "" {
+			placeholder={ p.Placeholder }
+		}
+		if p.Rows > 0 {
+			rows={ strconv.Itoa(p.Rows) }
+		}
+		disabled?={ disabled }
+		required?={ required }
+		if invalid {
+			data-invalid="true"
+			aria-invalid="true"
+		}
+		{ p.Attrs... }
+	>{ value }</textarea>
+}

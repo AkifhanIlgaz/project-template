@@ -1,0 +1,165 @@
+package inputotp
+
+import (
+	"context"
+	"strconv"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 InputOTP — doğrulama kodları için tek kullanımlık şifre girişi.
+// Görünmez tek bir native <input> yazımı/yapıştırmayı yakalar; slot'lar görsel
+// olarak karakterleri, aktif slot'u ve yanıp sönen caret'i gösterir.
+// static/js/input_otp.js gizli input'un değerini slot'lara yansıtır.
+//
+//	@inputotp.InputOTP(inputotp.Props{MaxLength: 6, Name: "code"}) {
+//		@inputotp.Group() {
+//			@inputotp.Slot(0)
+//			@inputotp.Slot(1)
+//			@inputotp.Slot(2)
+//		}
+//		@inputotp.Separator()
+//		@inputotp.Group() {
+//			@inputotp.Slot(3)
+//			@inputotp.Slot(4)
+//			@inputotp.Slot(5)
+//		}
+//	}
+//
+// React'e özgü value/onChange/onComplete (controlled state) yoktur; başlangıç
+// değeri Value ile verilir.
+
+type Variant string
+
+const (
+	VariantPrimary   Variant = "primary"
+	VariantSecondary Variant = "secondary"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantPrimary)
+	}
+	return string(v)
+}
+
+type otpCtx struct {
+	Value      string
+	MaxLength  int
+	IsInvalid  bool
+	IsDisabled bool
+}
+
+type inputOTPCtxKey int
+
+const inputOTPKey inputOTPCtxKey = 0
+
+func root(ctx context.Context) otpCtx {
+	if c, ok := ctx.Value(inputOTPKey).(otpCtx); ok {
+		return c
+	}
+	return otpCtx{}
+}
+
+type Props struct {
+	// MaxLength, slot sayısıdır (default: 6).
+	MaxLength int
+	Name      string
+	Variant   Variant
+	// Pattern, izin verilen karakterler için regex (JS'te uygulanır).
+	// Örn: "[0-9]" yalnızca rakam, "[a-zA-Z]" yalnızca harf.
+	Pattern string
+	// InputMode, mobil klavye tipi (default: numeric).
+	InputMode  string
+	Value      string
+	IsDisabled bool
+	IsInvalid  bool
+	Attrs      templ.Attributes
+}
+
+templ InputOTP(p Props, tw ...string) {
+	{{
+	if p.MaxLength <= 0 {
+		p.MaxLength = 6
+	}
+	inputMode := p.InputMode
+	if inputMode == "" {
+		inputMode = "numeric"
+	}
+	ctx = context.WithValue(ctx, inputOTPKey, otpCtx{
+		Value:      p.Value,
+		MaxLength:  p.MaxLength,
+		IsInvalid:  p.IsInvalid,
+		IsDisabled: p.IsDisabled,
+	})
+	}}
+	<div
+		class={ utils.Cn(
+			"input-otp",
+			utils.If(p.Variant == VariantSecondary, "input-otp--secondary", ""),
+			tw,
+		) }
+		data-slot="input-otp"
+		data-disabled={ utils.BoolStr(p.IsDisabled) }
+		data-invalid={ utils.BoolStr(p.IsInvalid) }
+	>
+		<input
+			class="input-otp__hidden-input"
+			data-slot="input-otp-input"
+			style="position:absolute;inset:0;width:100%;height:100%;opacity:0;background:transparent;color:transparent;caret-color:transparent;text-align:center;border:0;outline:0;"
+			inputmode={ inputMode }
+			maxlength={ strconv.Itoa(p.MaxLength) }
+			autocomplete="one-time-code"
+			autocorrect="off"
+			autocapitalize="none"
+			spellcheck="false"
+			if p.Name != "" {
+				name={ p.Name }
+			}
+			if p.Value != "" {
+				value={ p.Value }
+			}
+			if p.Pattern != "" {
+				data-pattern={ p.Pattern }
+			}
+			disabled?={ p.IsDisabled }
+			{ p.Attrs... }
+		/>
+		{ children... }
+	</div>
+}
+
+// Group, bir slot grubudur (input-otp__group).
+templ Group(tw ...string) {
+	<div class={ utils.Cn("input-otp__group", tw) } data-slot="input-otp-group">
+		{ children... }
+	</div>
+}
+
+// Separator, gruplar arasındaki görsel ayraçtır.
+templ Separator(tw ...string) {
+	<div class={ utils.Cn("input-otp__separator", tw) } data-slot="input-otp-separator" role="separator"></div>
+}
+
+// Slot, tek bir karakter kutusudur; index sıfır tabanlıdır.
+templ Slot(index int, tw ...string) {
+	{{
+	r := root(ctx)
+	char := ""
+	if index >= 0 && index < len(r.Value) {
+		char = string(r.Value[index])
+	}
+	}}
+	<div
+		class={ utils.Cn("input-otp__slot", tw) }
+		data-slot="input-otp-slot"
+		data-index={ strconv.Itoa(index) }
+		data-filled={ utils.BoolStr(char != "") }
+		data-active="false"
+		data-invalid={ utils.BoolStr(r.IsInvalid) }
+		data-disabled={ utils.BoolStr(r.IsDisabled) }
+	>
+		<span class="input-otp__slot-value" data-slot="input-otp-slot-value">{ char }</span>
+		<div class="input-otp__caret" data-slot="input-otp-caret" hidden></div>
+	</div>
+}

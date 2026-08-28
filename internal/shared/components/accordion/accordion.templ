@@ -1,0 +1,155 @@
+package accordion
+
+import (
+	"context"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+type accordionCtxKey int
+
+const (
+	accordionRootKey accordionCtxKey = iota
+	accordionItemKey
+)
+
+type Variant string
+
+const (
+	VariantDefault Variant = ""
+	VariantSurface Variant = "surface"
+)
+
+func (v Variant) String() string {
+	return string(v)
+}
+
+// Props — React Accordion props karşılığı. expandedKeys/onExpandedChange
+// gibi controlled state React'e özgüdür, burada yoktur.
+type Props struct {
+	Variant                Variant
+	AllowsMultipleExpanded bool
+	HideSeparator          bool
+	IsDisabled             bool
+	Attrs                  templ.Attributes
+}
+
+type ItemProps struct {
+	DefaultExpanded bool
+	IsDisabled      bool
+	Attrs           templ.Attributes
+}
+
+type TriggerProps struct {
+	IsDisabled bool
+	Attrs      templ.Attributes
+}
+
+func accordionRoot(ctx context.Context) Props {
+	if p, ok := ctx.Value(accordionRootKey).(Props); ok {
+		return p
+	}
+
+	return Props{}
+}
+
+func accordionItem(ctx context.Context) ItemProps {
+	if p, ok := ctx.Value(accordionItemKey).(ItemProps); ok {
+		return p
+	}
+
+	return ItemProps{}
+}
+
+
+templ Accordion(p Props, tw ...string) {
+	{{ ctx = context.WithValue(ctx, accordionRootKey, p) }}
+
+	<div
+		class={ utils.Cn("accordion", utils.If(p.Variant == VariantSurface, "accordion--surface", ""), tw) }
+		data-slot="accordion"
+		data-allows-multiple-expanded={ utils.BoolStr(p.AllowsMultipleExpanded) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Item(p ItemProps, tw ...string) {
+	{{ root := accordionRoot(ctx) }}
+	{{ p.IsDisabled = p.IsDisabled || root.IsDisabled }}
+	{{ ctx = context.WithValue(ctx, accordionItemKey, p) }}
+
+	<div
+		class={utils.Cn("accordion__item", tw)}
+		data-slot="accordion-item"
+		data-hide-separator={ utils.BoolStr(root.HideSeparator) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Heading(tw ...string) {
+	<h3 class={ utils.Cn("accordion__heading", tw) } data-slot="accordion-heading">
+		{ children... }
+	</h3>
+}
+
+templ Trigger(p TriggerProps, tw ...string) {
+	{{ item := accordionItem(ctx) }}
+
+	<button
+		type="button"
+		class={ utils.Cn("accordion__trigger", tw) }
+		data-slot="accordion-trigger"
+		slot="trigger"
+		aria-expanded={ utils.BoolStr(item.DefaultExpanded) }
+		disabled?={ item.IsDisabled || p.IsDisabled }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</button>
+}
+
+// AccordionIndicator, React'teki gibi varsayılan chevron-down ikonunu render eder.
+// Özel ikon için chevron yerine kendi elementinize "accordion__indicator" class'ını
+// ve data-slot/data-expanded attribute'larını verin.
+templ Indicator(tw ...string) {
+	{{ item := accordionItem(ctx) }}
+
+	<svg
+		class={ utils.Cn("accordion__indicator", tw) }
+		data-slot="accordion-indicator"
+		data-expanded={ utils.BoolStr(item.DefaultExpanded) }
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"
+	>
+		<path d="m6 9 6 6 6-6"></path>
+	</svg>
+}
+
+templ Panel(tw ...string) {
+	{{ item := accordionItem(ctx) }}
+
+	<div
+		class={ utils.Cn("accordion__panel", tw) }
+		data-slot="accordion-panel"
+		data-expanded={ utils.BoolStr(item.DefaultExpanded) }
+	>
+		{ children... }
+	</div>
+}
+
+templ Body(tw ...string) {
+	<div class="accordion__body" data-slot="accordion-body">
+		<div class={ utils.Cn("accordion__body-inner", tw) }>
+			{ children... }
+		</div>
+	</div>
+}

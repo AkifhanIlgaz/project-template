@@ -1,0 +1,42 @@
+package field
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// Form alanı yardımcıları: Label, Description, FieldError.
+// Checkbox/CheckboxGroup gibi field componentleri bunları data-slot ile tanır.
+
+type LabelProps struct {
+	// For, harici label kullanımında hedef input id'si (htmlFor karşılığı).
+	For   string
+	Attrs templ.Attributes
+}
+
+templ Label(p LabelProps, tw ...string) {
+	<label
+		class={ templ.SafeClass(utils.Cn("label", tw)) }
+		data-slot="label"
+		if p.For != "" {
+			for={ p.For }
+		}
+		{ p.Attrs... }
+	>
+		{ children... }
+	</label>
+}
+
+templ Description(tw ...string) {
+	<span class={ templ.SafeClass(utils.Cn("description", tw)) } data-slot="description">
+		{ children... }
+	</span>
+}
+
+// FieldError, data-visible olmadan gizli kalır; SSR'da hata her zaman görünür render edilir.
+templ FieldError(tw ...string) {
+	<span
+		class={ templ.SafeClass(utils.Cn("field-error", tw)) }
+		data-slot="field-error"
+		data-visible="true"
+	>
+		{ children... }
+	</span>
+}

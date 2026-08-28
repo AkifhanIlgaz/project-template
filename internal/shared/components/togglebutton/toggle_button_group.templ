@@ -1,0 +1,108 @@
+package togglebutton
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3 ToggleButtonGroup — birden çok ToggleButton'ı tek bir kontrolde
+// gruplar. size + isDisabled değerlerini ve DefaultSelectedKeys ile hesaplanan
+// başlangıç seçimini context ile içindeki 'lara aktarır.
+//
+//	@ToggleButtonGroup(GroupProps{SelectionMode: SelectionModeSingle, DefaultSelectedKeys: []string{"center"}}) {
+//		@ToggleButton(Props{ID: "left"}) { Left }
+//		@ToggleButton(Props{ID: "center"}) {
+//			@Separator()
+//			Center
+//		}
+//		@ToggleButton(Props{ID: "right"}) {
+//			@Separator()
+//			Right
+//		}
+//	}
+//
+// Seçim mantığı (single/multiple, disallowEmptySelection) toggle_button.js'te
+// data-selection-mode / data-disallow-empty-selection attribute'larına göre
+// çalışır. Separator ilk buton HARİÇ her butonun içine (ilk çocuk) konur.
+
+type SelectionMode string
+
+const (
+	SelectionModeSingle   SelectionMode = "single"
+	SelectionModeMultiple SelectionMode = "multiple"
+)
+
+func (m SelectionMode) String() string {
+	if m == "" {
+		return string(SelectionModeSingle)
+	}
+
+	return string(m)
+}
+
+type GroupOrientation string
+
+const (
+	OrientationHorizontal GroupOrientation = "horizontal"
+	OrientationVertical   GroupOrientation = "vertical"
+)
+
+func (o GroupOrientation) String() string {
+	if o == "" {
+		return string(OrientationHorizontal)
+	}
+
+	return string(o)
+}
+
+type GroupProps struct {
+	SelectionMode          SelectionMode // default: single
+	Orientation            GroupOrientation // default: horizontal
+	Size                   Size    // içindeki 'lara aktarılır; boşsa md
+	DefaultSelectedKeys    []string // seçili başlangıç 'larının ID'leri
+	DisallowEmptySelection bool     // single modda son seçili buton kapatılamaz
+	IsDetached             bool
+	FullWidth              bool
+	IsDisabled             bool
+	Attrs                  templ.Attributes
+}
+
+templ ToggleButtonGroup(p GroupProps, tw ...string) {
+	{{
+	keys := make(map[string]bool, len(p.DefaultSelectedKeys))
+	for _, k := range p.DefaultSelectedKeys {
+		keys[k] = true
+	}
+	ctx = context.WithValue(ctx, toggleGroupKey, groupCtx{
+		Size:         p.Size,
+		IsDisabled:   p.IsDisabled,
+		selectedKeys: keys,
+	})
+	}}
+	<div
+		class={ utils.Cn(
+			"toggle-button-group",
+			"toggle-button-group--"+p.Orientation.String(),
+			utils.If(p.IsDetached, "toggle-button-group--detached", ""),
+			utils.If(p.FullWidth, "toggle-button-group--full-width", ""),
+			tw,
+		) }
+		data-slot="toggle-button-group"
+		role="group"
+		data-selection-mode={ p.SelectionMode.String() }
+		data-disallow-empty-selection={ utils.BoolStr(p.DisallowEmptySelection) }
+		data-disabled={ utils.BoolStr(p.IsDisabled) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+templ Separator(tw ...string) {
+	<span
+		class={ utils.Cn("toggle-button-group__separator", tw) }
+		data-slot="toggle-button-group-separator"
+		aria-hidden="true"
+	></span>
+}

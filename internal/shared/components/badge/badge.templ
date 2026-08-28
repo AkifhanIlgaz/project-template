@@ -1,0 +1,114 @@
+package badge
+
+import "github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+
+// HeroUI v3  — React compound API'sinin templ karşılığı.
+//
+// Anatomi:
+//
+//	@Anchor() {
+//		@Avatar(...) { ... }
+//		@(Props{Color: ColorDanger, Size: SizeSm}) { 5 }
+//	}
+//
+// Children verilmezse dot (nokta) görünümünde kalır. React'teki gibi
+// içerik badge__label span'ı içinde render edilir.
+
+type Color string
+
+const (
+	ColorDefault Color = "default"
+	ColorAccent  Color = "accent"
+	ColorSuccess Color = "success"
+	ColorWarning Color = "warning"
+	ColorDanger  Color = "danger"
+)
+
+func (c Color) String() string {
+	if c == "" {
+		return string(ColorDefault)
+	}
+
+	return string(c)
+}
+
+type Variant string
+
+const (
+	VariantPrimary   Variant = "primary"
+	VariantSecondary Variant = "secondary"
+	VariantSoft      Variant = "soft"
+)
+
+func (v Variant) String() string {
+	if v == "" {
+		return string(VariantPrimary)
+	}
+
+	return string(v)
+}
+
+type Size string
+
+const (
+	SizeSm Size = "sm"
+	SizeMd Size = "md"
+	SizeLg Size = "lg"
+)
+
+func (s Size) String() string {
+	if s == "" {
+		return string(SizeMd)
+	}
+	return string(s)
+}
+
+type Placement string
+
+const (
+	PlacementTopRight    Placement = "top-right"
+	PlacementTopLeft     Placement = "top-left"
+	PlacementBottomRight Placement = "bottom-right"
+	PlacementBottomLeft  Placement = "bottom-left"
+)
+
+func (p Placement) String() string {
+	if p == "" {
+		return string(PlacementTopRight)
+	}
+	return string(p)
+}
+
+type Props struct {
+	Color     Color     // default: default
+	Variant   Variant   // default: primary
+	Size      Size      // default: md
+	Placement Placement // default: top-right
+	Attrs     templ.Attributes
+}
+
+// Anchor, badge'in konumlandığı elemanı sarar.
+templ Anchor(tw ...string) {
+	<span class={ utils.Cn("badge-anchor", tw) } data-slot="badge-anchor">
+		{ children... }
+	</span>
+}
+
+templ Badge(p Props, tw ...string) {
+	<span
+		class={ utils.Cn(
+			"badge",
+			"badge--"+p.Color.String(),
+			"badge--"+p.Variant.String(),
+			"badge--"+p.Size.String(),
+			"badge--"+p.Placement.String(),
+			tw,
+		) }
+		data-slot="badge"
+		{ p.Attrs... }
+	>
+		<span class="badge__label" data-slot="badge-label">
+			{ children... }
+		</span>
+	</span>
+}

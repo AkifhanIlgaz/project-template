@@ -1,0 +1,66 @@
+package scrollshadow
+
+import (
+	"strconv"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — taşan içeriği fade ile işaretleyen scroll konteyneri.
+//
+//	@(Props{}, "max-h-[240px] p-4") {
+//		...uzun içerik...
+//	}
+//
+// Kaydırma konumu (top/bottom/left/right/both) static/js/scroll_shadow.js
+// tarafından scroll + ResizeObserver ile izlenir ve data-*-scroll
+// attribute'larına yazılır; CSS bu attribute'lara göre mask-image uygular.
+// React'e özgü visibility (controlled) ve onVisibilityChange yoktur.
+
+type Orientation string
+
+const (
+	OrientationVertical   Orientation = "vertical"
+	OrientationHorizontal Orientation = "horizontal"
+)
+
+func (o Orientation) String() string {
+	return string(o)
+}
+
+type Props struct {
+	Orientation Orientation // default: vertical
+	// Size, fade gölgesinin piksel yüksekliği/genişliği (default: 40).
+	Size int
+	// Offset, gölgenin belirmesi için gereken scroll mesafesi (px, default: 0).
+	Offset        int
+	HideScrollBar bool
+	Attrs         templ.Attributes
+}
+
+templ ScrollShadow(p Props, tw ...string) {
+	{{
+	if p.Orientation == "" {
+		p.Orientation = OrientationVertical
+	}
+	if p.Size == 0 {
+		p.Size = 40
+	}
+	}}
+	<div
+		class={ templ.SafeClass(utils.Cn(
+			"scroll-shadow",
+			"scroll-shadow--fade",
+			"scroll-shadow--"+p.Orientation.String(),
+			utils.If(p.HideScrollBar, "scroll-shadow--hide-scrollbar", ""),
+			tw,
+		)) }
+		data-slot="scroll-shadow"
+		data-orientation={ p.Orientation.String() }
+		data-scroll-shadow-offset={ strconv.Itoa(p.Offset) }
+		style={ "--scroll-shadow-size: " + strconv.Itoa(p.Size) + "px" }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
