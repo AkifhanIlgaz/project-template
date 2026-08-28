@@ -23,9 +23,6 @@ templ Sidebar(p Props) {
 			<a href={ templ.URL(utils.If(p.AppHref == "", "/", p.AppHref)) } class="sidebar-label truncate text-lg font-semibold text-foreground">
 				{ p.AppName }
 			</a>
-			<button type="button" class="button button--ghost button--sm button--icon-only max-lg:hidden" aria-label="Menüyü daralt/genişlet" onclick="window.__toggleSidebar()">
-				@icons.PanelLeft()
-			</button>
 			<button type="button" class="button button--ghost button--sm button--icon-only lg:hidden" aria-label="Menüyü kapat" onclick="window.__toggleMobileSidebar()">
 				@icons.X()
 			</button>

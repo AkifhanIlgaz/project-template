@@ -82,12 +82,15 @@ templ Dashboard(p DashboardProps) {
 						<button type="button" class="button button--ghost button--sm button--icon-only lg:hidden" aria-label="Menüyü aç" onclick="window.__toggleMobileSidebar()">
 							@icons.Menu()
 						</button>
+						<button type="button" class="button button--ghost button--sm button--icon-only max-lg:hidden" aria-label="Menüyü daralt/genişlet" onclick="window.__toggleSidebar()">
+							@icons.PanelLeft()
+						</button>
 						@Breadcrumbs(p.Crumbs)
 						<div class="ms-auto">
 							@themetoggle.Toggle()
 						</div>
 					</header>
-					<main id="dashboard-content" class="flex w-full flex-1 flex-col px-4 py-4 lg:px-2 lg:py-2 ">
+					<main id="dashboard-content" class="flex w-full flex-1 flex-col px-4 py-4 lg:px-0 lg:py-0 ">
 						{ children... }
 					</main>
 				</div>
