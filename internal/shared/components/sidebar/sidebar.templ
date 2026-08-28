@@ -13,15 +13,30 @@ import (
 type Props struct {
 	AppName    string
 	AppHref    string
+	// Logo is the mark shown to the left of AppName, and alone once the
+	// sidebar is collapsed (AppName hides with the rest of .sidebar-label).
+	// Defaults to icons.Layers — swap it for the app's real logo.
+	Logo       IconFunc
 	Items      []NavItem
 	ActivePath string
+}
+
+// logoIcon returns p.Logo, or a generic placeholder mark if the caller
+// didn't set one — this is a template repo, so most projects built from it
+// will pass their own.
+func logoIcon(p Props) IconFunc {
+	if p.Logo != nil {
+		return p.Logo
+	}
+	return icons.Layers
 }
 
 templ Sidebar(p Props) {
 	<aside id="app-sidebar" class="sidebar" hx-swap-oob="true">
 		<div class="sidebar-head">
-			<a href={ templ.URL(utils.If(p.AppHref == "", "/", p.AppHref)) } class="sidebar-label truncate text-lg font-semibold text-foreground">
-				{ p.AppName }
+			<a href={ templ.URL(utils.If(p.AppHref == "", "/", p.AppHref)) } class="sidebar-brand">
+				@NavIcon(logoIcon(p))
+				<span class="sidebar-label truncate text-lg font-semibold text-foreground">{ p.AppName }</span>
 			</a>
 			<button type="button" class="button button--ghost button--sm button--icon-only lg:hidden" aria-label="Menüyü kapat" onclick="window.__toggleMobileSidebar()">
 				@icons.X()
