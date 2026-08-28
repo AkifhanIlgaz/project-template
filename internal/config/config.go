@@ -19,11 +19,19 @@ const (
 
 type Config struct {
 	Env     Env           `mapstructure:"env"`
+	Log     LogConfig     `mapstructure:"log"`
 	Server  ServerConfig  `mapstructure:"server"`
 	Mongo   MongoConfig   `mapstructure:"mongo"`
 	Redis   RedisConfig   `mapstructure:"redis"`
 	Session SessionConfig `mapstructure:"session"`
 	Google  GoogleConfig  `mapstructure:"google"`
+}
+
+type LogConfig struct {
+	// Level is a slog.Level name (debug, info, warn, error), case-insensitive.
+	// An empty or unrecognized value falls back to info — see
+	// internal/platform/logging.
+	Level string `mapstructure:"level"`
 }
 
 type ServerConfig struct {
@@ -69,6 +77,7 @@ func Load() (Config, error) {
 	v.AddConfigPath(".")
 
 	v.SetDefault("env", string(EnvDevelopment))
+	v.SetDefault("log.level", "info")
 	v.SetDefault("server.port", "3000")
 	v.SetDefault("server.base_url", "http://localhost:3000")
 	v.SetDefault("mongo.uri", "mongodb://localhost:27017")
@@ -80,6 +89,7 @@ func Load() (Config, error) {
 	// production can set SESSION_SECRET / GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
 	// without ever needing a config.yaml on disk.
 	mustBindEnv(v, "env", "APP_ENV")
+	mustBindEnv(v, "log.level", "LOG_LEVEL")
 	mustBindEnv(v, "server.port", "PORT")
 	mustBindEnv(v, "server.base_url", "BASE_URL")
 	mustBindEnv(v, "mongo.uri", "MONGO_URI")

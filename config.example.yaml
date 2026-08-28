@@ -4,6 +4,7 @@
 # In production there is no config.yaml at all: every field below is set via
 # the matching environment variable instead (see internal/config/config.go).
 #   env                  -> APP_ENV
+#   log.level            -> LOG_LEVEL
 #   server.port          -> PORT
 #   server.base_url      -> BASE_URL
 #   mongo.uri            -> MONGO_URI
@@ -15,6 +16,10 @@
 #   google.client_secret -> GOOGLE_CLIENT_SECRET
 
 env: development
+
+# debug locally to see everything; info (or unset) in production.
+log:
+  level: debug
 
 server:
   port: "3000"
