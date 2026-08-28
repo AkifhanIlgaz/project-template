@@ -27,9 +27,13 @@
  * order, e.g. close-button, description, error-message, field-error, and
  * label are imported first because other components depend on them.
  */
+@import "@heroui/styles/components/close-button.css" layer(components);
 @import "@heroui/styles/components/card.css" layer(components);
 @import "@heroui/styles/components/button.css" layer(components);
 @import "@heroui/styles/components/toggle-button.css" layer(components);
+@import "@heroui/styles/components/breadcrumbs.css" layer(components);
+@import "@heroui/styles/components/alert-dialog.css" layer(components);
+@import "@heroui/styles/components/toast.css" layer(components);
 
 @import "@heroui/styles/themes/default" layer(theme);
 
@@ -67,6 +71,23 @@
 :root {
 	--radius: 0.75rem;
 	--field-radius: 0;
+
+	/*
+	 * internal/shared/components/sidebar: expanded/collapsed widths as
+	 * custom properties (rather than hardcoded in the rules below) so a
+	 * project built from this template can override either from its own
+	 * CSS without touching input.css — same pattern as HeroUI Pro's
+	 * AppLayout --sidebar-width/--sidebar-width-collapsed.
+	 */
+	--sidebar-width: 16rem;
+	--sidebar-width-collapsed: 4.25rem;
+
+	/*
+	 * @heroui/styles/components/toast.css reads --toast-width for its
+	 * min-width above the sm breakpoint but never defines it itself —
+	 * every consuming app is expected to.
+	 */
+	--toast-width: 22rem;
 }
 
 /*
@@ -84,4 +105,233 @@
 
 [data-theme="dark"] [data-theme-icon="dark"] {
 	display: none;
+}
+
+/*
+ * internal/shared/components/sidebar + internal/shared/layout.Dashboard:
+ * collapse/mobile-drawer state lives on <html> as [data-sidebar]/
+ * [data-sidebar-mobile] (set before first paint by static/js/sidebar.js,
+ * same FOUC-guard pattern as [data-theme] above) so the sidebar's own
+ * markup never needs JS-driven inline styles.
+ */
+.sidebar {
+	position: sticky;
+	top: 0;
+	z-index: 30;
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	height: 100dvh;
+	width: var(--sidebar-width);
+	overflow: hidden;
+	background: var(--surface);
+	transition:
+		width 200ms cubic-bezier(0.2, 0, 0, 1),
+		height 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.sidebar-link svg {
+	width: 1rem;
+	height: 1rem;
+	flex-shrink: 0;
+}
+
+.sidebar-overlay {
+	display: none;
+}
+
+@media (width >= 64rem) {
+	/* Floating treatment: only on desktop — the mobile drawer stays flush
+	   edge-to-edge (see the width < 64rem block) to save space. */
+	.sidebar {
+		top: 1rem;
+		height: calc(100dvh - 2rem);
+		margin-inline: 1rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-2xl);
+		box-shadow: var(--shadow-surface);
+	}
+
+	[data-sidebar="collapsed"] .sidebar {
+		width: var(--sidebar-width-collapsed);
+	}
+
+	[data-sidebar="collapsed"] .sidebar-label {
+		display: none;
+	}
+
+	[data-sidebar="collapsed"] .sidebar-head {
+		justify-content: center;
+	}
+
+	[data-sidebar="collapsed"] .sidebar-link {
+		justify-content: center;
+		padding-inline: 0.5rem;
+	}
+}
+
+@media (width < 64rem) {
+	.sidebar {
+		position: fixed;
+		inset-block: 0;
+		inset-inline-start: 0;
+		z-index: 50;
+		translate: -100% 0;
+		border-inline-end: 1px solid var(--border);
+		transition: translate 200ms cubic-bezier(0.2, 0, 0, 1);
+	}
+
+	[data-sidebar-mobile="open"] .sidebar {
+		translate: 0 0;
+	}
+
+	[data-sidebar-mobile="open"] .sidebar-overlay {
+		display: block;
+		position: fixed;
+		inset: 0;
+		z-index: 40;
+		background: var(--backdrop);
+	}
+}
+
+.sidebar-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	min-height: 3.5rem;
+	padding: 0.5rem 0.75rem;
+	border-bottom: 1px solid var(--border);
+}
+
+.sidebar-link {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.5rem 0.75rem;
+	margin-inline: 0.5rem;
+	border-radius: var(--radius-lg);
+	border: 0;
+	background: transparent;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--muted);
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background-color 150ms,
+		color 150ms;
+}
+
+.sidebar-link:hover {
+	background: color-mix(in oklab, var(--foreground) 8%, transparent);
+	color: var(--foreground);
+}
+
+.sidebar-link-active,
+.sidebar-link-active:hover {
+	background: color-mix(in oklab, var(--accent) 12%, transparent);
+	color: var(--accent);
+}
+
+.sidebar-footer {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	padding: 0.5rem;
+	border-top: 1px solid var(--border);
+}
+
+
+
+/*
+ * HeroUI Theme Customization
+ * Add this to your global.css after importing @heroui/styles
+ * Only includes variables users need to customize
+ * @see https://heroui.com/docs/react/getting-started/theming
+ */
+
+:root,
+.light,
+.default,
+[data-theme="light"],
+[data-theme="default"] {
+  /* Theme Colors (Light Mode) */
+  --accent: oklch(59.00% 0.1400 331.00);
+  --accent-foreground: oklch(99.11% 0 0);
+  --background: oklch(97.02% 0.0139 331.00);
+  --border: oklch(90.00% 0.0139 331.00);
+  --danger: oklch(65.32% 0.2393 35.00);
+  --danger-foreground: oklch(99.11% 0 0);
+  --default: oklch(94.00% 0.0139 331.00);
+  --default-foreground: oklch(21.03% 0.0059 331.00);
+  --field-background: oklch(100.00% 0.0070 331.00);
+  --field-border: transparent;
+  --field-foreground: oklch(21.03% 0.0139 331.00);
+  --field-placeholder: oklch(55.17% 0.0278 331.00);
+  --focus: oklch(59.00% 0.1400 331.00);
+  --foreground: oklch(21.03% 0.0139 331.00);
+  --muted: oklch(55.17% 0.0278 331.00);
+  --overlay: oklch(100.00% 0.0042 331.00);
+  --overlay-foreground: oklch(21.03% 0.0139 331.00);
+  --scrollbar: oklch(87.10% 0.0139 331.00);
+  --segment: oklch(100.00% 0.0139 331.00);
+  --segment-foreground: oklch(21.03% 0.0139 331.00);
+  --separator: oklch(92.00% 0.0139 331.00);
+  --success: oklch(73.29% 0.1989 160.07);
+  --success-foreground: oklch(21.03% 0.0059 160.07);
+  --surface: oklch(100.00% 0.0070 331.00);
+  --surface-foreground: oklch(21.03% 0.0139 331.00);
+  --surface-secondary: oklch(95.24% 0.0111 331.00);
+  --surface-secondary-foreground: oklch(21.03% 0.0139 331.00);
+  --surface-tertiary: oklch(93.73% 0.0111 331.00);
+  --surface-tertiary-foreground: oklch(21.03% 0.0139 331.00);
+  --warning: oklch(78.19% 0.1629 81.59);
+  --warning-foreground: oklch(21.03% 0.0059 81.59);
+
+  /* Border Radius */
+  --radius: 0.25rem;
+  --field-radius: 0.75rem;
+
+  /* Font Family */
+  /* Make sure to load Instrument Sans font in your app */
+  --font-sans: var(--font-instrument-sans);
+}
+
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+  /* Theme Colors (Dark Mode) */
+  --accent: oklch(59.00% 0.1400 331.00);
+  --accent-foreground: oklch(99.11% 0 0);
+  --background: oklch(12.00% 0.0139 331.00);
+  --border: oklch(28.00% 0.0139 331.00);
+  --danger: oklch(59.40% 0.2022 33.89);
+  --danger-foreground: oklch(99.11% 0 0);
+  --default: oklch(27.40% 0.0139 331.00);
+  --default-foreground: oklch(99.11% 0 0);
+  --field-background: oklch(21.03% 0.0278 331.00);
+  --field-border: transparent;
+  --field-foreground: oklch(99.11% 0.0139 331.00);
+  --field-placeholder: oklch(70.50% 0.0278 331.00);
+  --focus: oklch(59.00% 0.1400 331.00);
+  --foreground: oklch(99.11% 0.0139 331.00);
+  --muted: oklch(70.50% 0.0278 331.00);
+  --overlay: oklch(21.03% 0.0278 331.00);
+  --overlay-foreground: oklch(99.11% 0.0139 331.00);
+  --scrollbar: oklch(70.50% 0.0139 331.00);
+  --segment: oklch(39.64% 0.0139 331.00);
+  --segment-foreground: oklch(99.11% 0.0139 331.00);
+  --separator: oklch(25.00% 0.0139 331.00);
+  --success: oklch(73.29% 0.1989 160.07);
+  --success-foreground: oklch(21.03% 0.0059 160.07);
+  --surface: oklch(21.03% 0.0278 331.00);
+  --surface-foreground: oklch(99.11% 0.0139 331.00);
+  --surface-secondary: oklch(25.70% 0.0209 331.00);
+  --surface-secondary-foreground: oklch(99.11% 0.0139 331.00);
+  --surface-tertiary: oklch(27.21% 0.0209 331.00);
+  --surface-tertiary-foreground: oklch(99.11% 0.0139 331.00);
+  --warning: oklch(82.03% 0.1427 85.60);
+  --warning-foreground: oklch(21.03% 0.0059 85.60);
 }

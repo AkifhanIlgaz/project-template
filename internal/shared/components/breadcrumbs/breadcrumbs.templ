@@ -1,0 +1,95 @@
+package breadcrumbs
+
+import (
+	"context"
+
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — React compound API'sinin templ karşılığı.
+//
+// Anatomi:
+//
+//	@(Props{}) {
+//		@Item(ItemProps{Href: "/"}) { Home }
+//		@Item(ItemProps{}) { Current Page }
+//	}
+//
+// Href verilmeyen (veya IsCurrent: true olan) öğe geçerli sayfa sayılır:
+// link yerine span render edilir ve ayracı gösterilmez.
+
+type breadcrumbsCtxKey int
+
+const breadcrumbsRootKey breadcrumbsCtxKey = 0
+
+type Props struct {
+	IsDisabled bool
+	// Separator, varsayılan chevron yerine kullanılacak ikon.
+	Separator templ.Component
+	Attrs     templ.Attributes
+}
+
+func breadcrumbsRoot(ctx context.Context) Props {
+	if p, ok := ctx.Value(breadcrumbsRootKey).(Props); ok {
+		return p
+	}
+	return Props{}
+}
+
+templ Breadcrumbs(p Props, tw ...string) {
+	{{ ctx = context.WithValue(ctx, breadcrumbsRootKey, p) }}
+	<ol class={ utils.Cn("breadcrumbs", tw) } data-slot="breadcrumbs" { p.Attrs... }>
+		{ children... }
+	</ol>
+}
+
+type ItemProps struct {
+	// Href boşsa öğe geçerli sayfa (current) kabul edilir.
+	Href       string
+	IsCurrent  bool
+	IsDisabled bool
+	Attrs      templ.Attributes
+}
+
+templ Item(p ItemProps, tw ...string) {
+	{{
+	root := breadcrumbsRoot(ctx)
+	disabled := p.IsDisabled || root.IsDisabled
+	current := p.IsCurrent || p.Href == ""
+	}}
+	<li class={ utils.Cn("breadcrumbs__item", tw) } data-slot="breadcrumbs-item">
+		if current {
+			<span class="breadcrumbs__link" data-current="true" aria-current="page">
+				{ children... }
+			</span>
+		} else {
+			<a
+				class={ utils.Cn("breadcrumbs__link", utils.If(disabled, "status-disabled", "")) }
+				href={ templ.URL(p.Href) }
+				aria-disabled={ utils.BoolStr(disabled) }
+			>
+				{ children... }
+			</a>
+			if root.Separator != nil {
+				<span class="breadcrumbs__separator [&>svg]:size-full" data-slot="breadcrumbs-separator" aria-hidden="true">
+					@root.Separator
+				</span>
+			} else {
+				<svg
+					class="breadcrumbs__separator"
+					data-slot="breadcrumbs-separator"
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="m9 18 6-6-6-6"></path>
+				</svg>
+			}
+		}
+	</li>
+}

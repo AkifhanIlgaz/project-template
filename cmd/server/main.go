@@ -11,6 +11,7 @@ import (
 
 	"github.com/AkifhanIlgaz/project-template/internal/config"
 	"github.com/AkifhanIlgaz/project-template/internal/features/auth"
+	"github.com/AkifhanIlgaz/project-template/internal/features/dashboard"
 	"github.com/AkifhanIlgaz/project-template/internal/features/home"
 	"github.com/AkifhanIlgaz/project-template/internal/features/user"
 	"github.com/AkifhanIlgaz/project-template/internal/platform/csrf"
@@ -61,6 +62,7 @@ func main() {
 
 	authHandler.RegisterRoutes(app)
 	home.NewHandler().RegisterRoutes(app)
+	dashboard.NewHandler().RegisterRoutes(app)
 
 	go func() {
 		if err := app.Listen(":" + cfg.Server.Port); err != nil {

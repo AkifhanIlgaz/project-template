@@ -1,7 +1,18 @@
+#:schema https://json.schemastore.org/any.json
 root = "."
 tmp_dir = "tmp"
 
 [build]
+  # air runs the server binary in its own process group (so a rebuild can
+  # kill just the old binary without killing air itself) — which also means
+  # that binary is invisible to the terminal's own process group. If air
+  # dies uncleanly (SIGKILL, a force-closed terminal/IDE pane) instead of
+  # via Ctrl+C, nothing tells that binary to stop and it's orphaned to
+  # launchd/init, still holding the port. pre_cmd runs before every build
+  # (including air's very first one) and clears the port unconditionally,
+  # so a leftover instance from a previous crashed session never blocks
+  # the next `air` start with "address already in use".
+  pre_cmd = ["lsof -ti:3000 | xargs kill -9 2>/dev/null || true"]
   cmd = "templ generate && npx tailwindcss -i input.css -o static/css/app.css && go build -o ./bin/server ./cmd/server"
   bin = "./bin/server"
   full_bin = "./bin/server"
@@ -12,6 +23,7 @@ tmp_dir = "tmp"
   delay = 200
   stop_on_error = true
   send_interrupt = true
+  kill_delay = "500ms"
 
 [color]
   main = "magenta"

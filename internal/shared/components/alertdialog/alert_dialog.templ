@@ -1,0 +1,245 @@
+package alertdialog
+
+import (
+	"context"
+
+	closebutton "github.com/AkifhanIlgaz/project-template/internal/shared/components/closebutton"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/statusicon"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+// HeroUI v3  — modal/confirm dialog. Açma/kapama, backdrop, Escape ve
+// scroll-lock static/js/alert_dialog.js'te (trigger, root'un backdrop
+// dışındaki DOĞRUDAN <button> çocuğudur — dropdown/accordion'daki gibi
+// closest() değil, doğrudan çocuk aranır).
+//
+//	@AlertDialog() {
+//		<button type="button">Aç</button>
+//		@AlertDialogBackdrop(BackdropProps{IsDismissable: true}) {
+//			@AlertDialogContainer(ContainerProps{}) {
+//				@AlertDialogDialog() {
+//					@AlertDialogHeader() {
+//						@AlertDialogHeading() { Başlık }
+//					}
+//					@AlertDialogBody() { İçerik }
+//					@AlertDialogFooter() {
+//						<button slot="close">Vazgeç</button>
+//					}
+//				}
+//			}
+//		}
+//	}
+
+type alertDialogCtxKey int
+
+const alertDialogContainerKey alertDialogCtxKey = 0
+
+type Status string
+
+const (
+	StatusDefault Status = "default"
+	StatusAccent  Status = "accent"
+	StatusSuccess Status = "success"
+	StatusWarning Status = "warning"
+	StatusDanger  Status = "danger"
+)
+
+func (s Status) String() string {
+	if s == "" {
+		return StatusDefault.String()
+	}
+
+	return string(s)
+}
+
+type Size string
+
+const (
+	SizeXs    Size = "xs"
+	SizeSm    Size = "sm"
+	SizeMd    Size = "md"
+	SizeLg    Size = "lg"
+	SizeCover Size = "cover"
+)
+
+func (s Size) String() string {
+	if s == "" {
+		return SizeMd.String()
+	}
+
+	return string(s)
+}
+
+type Placement string
+
+const (
+	PlacementAuto   Placement = "auto"
+	PlacementTop    Placement = "top"
+	PlacementCenter Placement = "center"
+	PlacementBottom Placement = "bottom"
+)
+
+func (p Placement) String() string {
+	if p == "" {
+		return PlacementAuto.String()
+	}
+
+	return string(p)
+}
+
+type BackdropVariant string
+
+const (
+	BackdropOpaque      BackdropVariant = "opaque"
+	BackdropBlur        BackdropVariant = "blur"
+	BackdropTransparent BackdropVariant = "transparent"
+)
+
+func (v BackdropVariant) String() string {
+	if v == "" {
+		return BackdropOpaque.String()
+	}
+
+	return string(v)
+}
+
+templ AlertDialog(tw ...string) {
+	<div class={ templ.SafeClass(utils.Cn("contents", tw)) } data-slot="alert-dialog-root">
+		{ children... }
+	</div>
+}
+
+type BackdropProps struct {
+	Variant                   BackdropVariant
+	IsDismissable             bool
+	IsKeyboardDismissDisabled bool
+	Attrs                     templ.Attributes
+}
+
+templ AlertDialogBackdrop(p BackdropProps, tw ...string) {
+	<div
+		class={ utils.Cn(
+			"alert-dialog__backdrop",
+			"alert-dialog__backdrop--"+p.Variant.String(),
+			tw,
+		) }
+		data-slot="alert-dialog-backdrop"
+		hidden
+		data-dismissable={ utils.BoolStr(p.IsDismissable) }
+		data-keyboard-dismiss-disabled={ utils.BoolStr(p.IsKeyboardDismissDisabled) }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+type ContainerProps struct {
+	Placement Placement // default: auto
+	Size      Size      // Default: md (dialog genişliğini belirler)
+	Attrs     templ.Attributes
+}
+
+templ AlertDialogContainer(p ContainerProps, tw ...string) {
+	{{ ctx = context.WithValue(ctx, alertDialogContainerKey, p) }}
+	<div
+		class={ utils.Cn("alert-dialog__container", tw) }
+		data-slot="alert-dialog-container"
+		data-placement={ p.Placement.String() }
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+func alertDialogContainer(ctx context.Context) ContainerProps {
+	if p, ok := ctx.Value(alertDialogContainerKey).(ContainerProps); ok {
+		return p
+	}
+	return ContainerProps{Placement: PlacementAuto, Size: SizeMd}
+}
+
+templ AlertDialogDialog(tw ...string) {
+	{{ container := alertDialogContainer(ctx) }}
+	<section
+		class={ utils.Cn(
+			"alert-dialog__dialog",
+			"alert-dialog__dialog--"+container.Size.String(),
+			tw,
+		) }
+		data-slot="alert-dialog-dialog"
+		data-placement={ container.Placement.String() }
+		role="alertdialog"
+		aria-modal="true"
+		tabindex="-1"
+	>
+		{ children... }
+	</section>
+}
+
+templ AlertDialogHeader(tw ...string) {
+	<div class={ utils.Cn("alert-dialog__header", tw) } data-slot="alert-dialog-header">
+		{ children... }
+	</div>
+}
+
+templ AlertDialogHeading(tw ...string) {
+	<h2 class={ utils.Cn("alert-dialog__heading", tw) } data-slot="alert-dialog-heading" slot="title">
+		{ children... }
+	</h2>
+}
+
+templ AlertDialogBody(tw ...string) {
+	<div class={ utils.Cn("alert-dialog__body", tw) } data-slot="alert-dialog-body">
+		{ children... }
+	</div>
+}
+
+templ AlertDialogFooter(tw ...string) {
+	<div class={ utils.Cn("alert-dialog__footer", tw) } data-slot="alert-dialog-footer">
+		{ children... }
+	</div>
+}
+
+type IconProps struct {
+	Status Status // Default: danger
+	Attrs  templ.Attributes
+}
+
+// AlertDialogIcon, status'a uygun varsayılan ikonu gösterir.
+templ AlertDialogIcon(p IconProps, tw ...string) {
+	<div
+		class={ utils.Cn(
+			"alert-dialog__icon",
+			"alert-dialog__icon--"+p.Status.String(),
+			tw,
+		) }
+		data-slot="alert-dialog-icon"
+		{ p.Attrs... }
+	>
+		@statusicon.StatusIcon("alert-dialog-default-icon", p.Status.String())
+	</div>
+}
+
+// AlertDialogIconCustom, varsayılan ikon yerine verdiğiniz içeriği gösterir.
+templ AlertDialogIconCustom(p IconProps, tw ...string) {
+	<div
+		class={ utils.Cn(
+			"alert-dialog__icon",
+			"alert-dialog__icon--"+p.Status.String(),
+			tw,
+		) }
+		data-slot="alert-dialog-icon"
+		{ p.Attrs... }
+	>
+		{ children... }
+	</div>
+}
+
+// AlertDialogCloseTrigger; slot="close" alert_dialog.js'in kapatma
+// delegasyonu tarafından yakalanır.
+templ AlertDialogCloseTrigger(tw ...string) {
+	@closebutton.CloseButton(closebutton.Props{Attrs: templ.Attributes{
+		"data-slot": "alert-dialog-close-trigger",
+		"slot":      "close",
+	}}, utils.Cn("alert-dialog__close-trigger", tw))
+}

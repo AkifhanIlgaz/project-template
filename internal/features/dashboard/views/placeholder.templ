@@ -1,0 +1,35 @@
+package views
+
+import (
+	"github.com/AkifhanIlgaz/project-template/internal/platform/session"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/card"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/layout"
+)
+
+// Placeholder is the shared shape for the demo pages in navItems
+// (dashboard_nav.go) that exist only to exercise sidebar/navbar navigation
+// end to end — swap it for real content once a page has any.
+templ Placeholder(u session.User, path string, csrfToken string, title string, pageCrumbs []layout.Crumb) {
+	@layout.Dashboard(layout.DashboardProps{
+		Title:       title,
+		CSRFToken:   csrfToken,
+		Path:        path,
+		User:        u,
+		Crumbs:      pageCrumbs,
+		AppName:     appName,
+		NavItems:    navItems,
+		FooterItems: footerItems,
+	}) {
+		<span>{ title }</span>
+		@card.Card(card.Props{}) {
+			@card.Header() {
+				@card.Title() {
+					{ title }
+				}
+				@card.Description() {
+					Bu, sidebar navigasyonunu denemek için eklenmiş örnek bir sayfadır.
+				}
+			}
+		}
+	}
+}

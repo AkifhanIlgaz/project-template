@@ -1,0 +1,64 @@
+// Package sidebar renders the dashboard's left navigation: a flat column
+// of links that stays fixed while the page content scrolls.
+// Collapse/mobile-drawer state and the [.sidebar-*] CSS backing it live in
+// static/js/sidebar.js and input.css — see internal/shared/layout.Dashboard,
+// which is the only place this gets mounted.
+package sidebar
+
+import (
+	"github.com/AkifhanIlgaz/project-template/internal/shared/icons"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/utils"
+)
+
+type Props struct {
+	AppName    string
+	AppHref    string
+	Items      []NavItem
+	ActivePath string
+}
+
+templ Sidebar(p Props) {
+	<aside id="app-sidebar" class="sidebar" hx-swap-oob="true">
+		<div class="sidebar-head">
+			<a href={ templ.URL(utils.If(p.AppHref == "", "/", p.AppHref)) } class="sidebar-label truncate text-lg font-semibold text-foreground">
+				{ p.AppName }
+			</a>
+			<button type="button" class="button button--ghost button--sm button--icon-only max-lg:hidden" aria-label="Menüyü daralt/genişlet" onclick="window.__toggleSidebar()">
+				@icons.PanelLeft()
+			</button>
+			<button type="button" class="button button--ghost button--sm button--icon-only lg:hidden" aria-label="Menüyü kapat" onclick="window.__toggleMobileSidebar()">
+				@icons.X()
+			</button>
+		</div>
+		<nav class="flex flex-1 flex-col gap-1 overflow-y-auto py-2" aria-label="Uygulama menüsü">
+			for _, it := range p.Items {
+				@Link(p.ActivePath, it)
+			}
+		</nav>
+		<div class="sidebar-footer">
+			{ children... }
+		</div>
+	</aside>
+}
+
+templ NavIcon(icon IconFunc) {
+	if icon != nil {
+		@icon()
+	}
+}
+
+templ Link(activePath string, it NavItem) {
+	{{ active := navActive(activePath, it.Href) }}
+	<a
+		href={ templ.URL(it.Href) }
+		class={ utils.Cn("sidebar-link", utils.If(active, "sidebar-link-active", "")) }
+		title={ it.Label }
+		if active {
+			aria-current="page"
+		}
+		{ it.Attrs... }
+	>
+		@NavIcon(it.Icon)
+		<span class="sidebar-label">{ it.Label }</span>
+	</a>
+}

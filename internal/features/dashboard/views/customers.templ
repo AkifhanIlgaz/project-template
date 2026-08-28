@@ -1,0 +1,79 @@
+package views
+
+import (
+	"fmt"
+
+	"github.com/AkifhanIlgaz/project-template/internal/platform/session"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/card"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/layout"
+)
+
+// customer is one row on the Customers demo page.
+type customer struct {
+	Name     string
+	Email    string
+	JoinedAt string
+	Active   bool
+}
+
+var demoCustomers = []customer{
+	{Name: "Elif Aydın", Email: "elif.aydin@example.com", JoinedAt: "12.03.2025", Active: true},
+	{Name: "Mert Kaya", Email: "mert.kaya@example.com", JoinedAt: "28.01.2025", Active: true},
+	{Name: "Zeynep Demir", Email: "zeynep.demir@example.com", JoinedAt: "05.11.2024", Active: false},
+	{Name: "Burak Şahin", Email: "burak.sahin@example.com", JoinedAt: "19.09.2024", Active: true},
+	{Name: "Ayşe Yıldız", Email: "ayse.yildiz@example.com", JoinedAt: "02.07.2024", Active: false},
+}
+
+// Customers is a demo page with made-up content (not a Placeholder) just to
+// exercise the dashboard shell with something that looks like a real page.
+templ Customers(u session.User, path string, csrfToken string) {
+	@layout.Dashboard(layout.DashboardProps{
+		Title:       "Müşteriler",
+		CSRFToken:   csrfToken,
+		Path:        path,
+		User:        u,
+		Crumbs:      []layout.Crumb{{Label: "Panel", Href: "/dashboard"}, {Label: "Müşteriler"}},
+		AppName:     appName,
+		NavItems:    navItems,
+		FooterItems: footerItems,
+	}) {
+		@card.Card(card.Props{}) {
+			@card.Header() {
+				@card.Title() {
+					Müşteriler
+				}
+				@card.Description() {
+					{ fmt.Sprintf("%d kayıtlı müşteri", len(demoCustomers)) }
+				}
+			}
+			@card.Content("overflow-x-auto p-0") {
+				<table class="w-full text-sm">
+					<thead>
+						<tr class="border-b border-border text-start text-xs text-muted">
+							<th class="px-4 py-2 text-start font-medium">Ad</th>
+							<th class="px-4 py-2 text-start font-medium">E-posta</th>
+							<th class="px-4 py-2 text-start font-medium">Kayıt Tarihi</th>
+							<th class="px-4 py-2 text-start font-medium">Durum</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, c := range demoCustomers {
+							<tr class="border-b border-border last:border-0">
+								<td class="px-4 py-2 font-medium text-foreground">{ c.Name }</td>
+								<td class="px-4 py-2 text-muted">{ c.Email }</td>
+								<td class="px-4 py-2 text-muted">{ c.JoinedAt }</td>
+								<td class="px-4 py-2">
+									if c.Active {
+										<span class="rounded-full bg-success/10 px-2 py-0.5 text-xs text-success">Aktif</span>
+									} else {
+										<span class="rounded-full bg-default/50 px-2 py-0.5 text-xs text-muted">Pasif</span>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		}
+	}
+}

@@ -1,0 +1,114 @@
+package layout
+
+import (
+	"github.com/AkifhanIlgaz/project-template/internal/platform/session"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/breadcrumbs"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/button"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/sidebar"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/themetoggle"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/icons"
+)
+
+// Crumb is one entry in a Dashboard page's breadcrumb trail. An empty Href
+// marks the active (current) page — see breadcrumbs.ItemProps.
+type Crumb struct {
+	Label string
+	Href  string
+}
+
+type DashboardProps struct {
+	Title     string
+	CSRFToken string
+	// Path is the current request's route, used to mark the active sidebar
+	// link/group (see internal/shared/components/sidebar.NavItem).
+	Path    string
+	User    session.User
+	Crumbs  []Crumb
+	AppName string
+	// NavItems is the sidebar's main link list; FooterItems renders below it
+	// (e.g. Profil/Ayarlar) — callers own both since they differ per app
+	// (see internal/features/dashboard for the demo lists). Çıkış yap is
+	// always appended after FooterItems as a danger-styled action button,
+	// not a NavItem, since it POSTs rather than navigates.
+	NavItems    []sidebar.NavItem
+	FooterItems []sidebar.NavItem
+}
+
+// Dashboard is the page shell for authenticated, sidebar-driven pages: a
+// floating left sidebar (internal/shared/components/sidebar) and a floating
+// navbar above scrollable content — both stay in place, on desktop, while
+// only the content between/under them scrolls. On mobile both go flush
+// (no floating chrome, sidebar becomes an off-canvas drawer) to save space.
+//
+// Navigating between dashboard pages swaps only #dashboard-content instead
+// of a full page reload: hx-boost on the outer wrapper turns every plain
+// <a> underneath (sidebar links, breadcrumbs) into a boosted htmx request,
+// hx-select carves the new page's own #dashboard-content out of its (still
+// server-rendered, doctype-and-all) full-page response, and the sidebar/
+// breadcrumbs re-sync via hx-swap-oob elsewhere in that same response —
+// no separate partial-render path needed server-side. Links that leave the
+// shell entirely (e.g. Profilim -> /me, a different page shell) opt out
+// with an explicit hx-boost="false" in their NavItem.Attrs.
+templ Dashboard(p DashboardProps) {
+	<!DOCTYPE html>
+	<html lang="en">
+		@head(p.Title, p.CSRFToken)
+		<body class="min-h-screen bg-background text-foreground">
+			<div class="sidebar-overlay" onclick="window.__toggleMobileSidebar()" aria-hidden="true"></div>
+			<div
+				class="flex min-h-screen"
+				hx-boost="true"
+				hx-target="#dashboard-content"
+				hx-select="#dashboard-content"
+				hx-swap="innerHTML show:window:top"
+				hx-push-url="true"
+			>
+				@sidebar.Sidebar(sidebar.Props{AppName: p.AppName, Items: p.NavItems, ActivePath: p.Path}) {
+					for _, it := range p.FooterItems {
+						@sidebar.Link(p.Path, it)
+					}
+					@button.Button(button.Props{
+						Variant:   button.VariantDanger,
+						Size:      button.SizeSm,
+						FullWidth: true,
+						Attrs:     templ.Attributes{"hx-post": "/auth/logout"},
+					}, "mt-2") {
+						@icons.LogOut()
+						<span class="sidebar-label">Çıkış yap</span>
+					}
+				}
+				<div class="flex min-w-0 flex-1 flex-col lg:gap-4 lg:pt-4 lg:pr-4">
+					<header class="sticky top-0 z-20 flex min-h-14 items-center gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur lg:top-4 lg:rounded-2xl lg:border lg:px-6 lg:shadow-surface">
+						<button type="button" class="button button--ghost button--sm button--icon-only lg:hidden" aria-label="Menüyü aç" onclick="window.__toggleMobileSidebar()">
+							@icons.Menu()
+						</button>
+						@Breadcrumbs(p.Crumbs)
+						<div class="ms-auto">
+							@themetoggle.Toggle()
+						</div>
+					</header>
+					<main id="dashboard-content" class="flex w-full flex-1 flex-col px-4 py-4 lg:px-2 lg:py-2 ">
+						{ children... }
+					</main>
+				</div>
+			</div>
+			@ToastRegion()
+		</body>
+	</html>
+}
+
+// Breadcrumbs carries hx-swap-oob so a boosted sidebar navigation (see
+// Dashboard) refreshes the trail too, even though hx-select only targets
+// #dashboard-content — htmx always pulls hx-swap-oob elements out of a
+// boosted response independently of the primary select/target.
+templ Breadcrumbs(crumbs []Crumb) {
+	if len(crumbs) > 0 {
+		@breadcrumbs.Breadcrumbs(breadcrumbs.Props{Attrs: templ.Attributes{"id": "breadcrumbs-trail", "hx-swap-oob": "true"}}) {
+			for _, c := range crumbs {
+				@breadcrumbs.Item(breadcrumbs.ItemProps{Href: c.Href}) {
+					{ c.Label }
+				}
+			}
+		}
+	}
+}

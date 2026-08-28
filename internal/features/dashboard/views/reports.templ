@@ -1,0 +1,50 @@
+package views
+
+import (
+	"github.com/AkifhanIlgaz/project-template/internal/platform/session"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/card"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/layout"
+)
+
+// stat is one metric card on the Reports demo page.
+type stat struct {
+	Label string
+	Value string
+	Trend string
+}
+
+var reportStats = []stat{
+	{Label: "Toplam Ziyaretçi", Value: "12.480", Trend: "+%12 bu ay"},
+	{Label: "Toplam Sipariş", Value: "342", Trend: "+%4 bu ay"},
+	{Label: "Dönüşüm Oranı", Value: "%3,2", Trend: "-%0,4 bu ay"},
+	{Label: "Ortalama Sepet", Value: "₺248", Trend: "+%7 bu ay"},
+}
+
+// Reports is a demo page with made-up content (not a Placeholder) just to
+// exercise the dashboard shell with something that looks like a real page.
+templ Reports(u session.User, path string, csrfToken string) {
+	@layout.Dashboard(layout.DashboardProps{
+		Title:       "Raporlar",
+		CSRFToken:   csrfToken,
+		Path:        path,
+		User:        u,
+		Crumbs:      []layout.Crumb{{Label: "Panel", Href: "/dashboard"}, {Label: "Raporlar"}},
+		AppName:     appName,
+		NavItems:    navItems,
+		FooterItems: footerItems,
+	}) {
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+			for _, s := range reportStats {
+				@card.Card(card.Props{}) {
+					@card.Content() {
+						<div class="flex flex-col gap-1">
+							<span class="text-sm text-muted">{ s.Label }</span>
+							<span class="text-2xl font-semibold text-foreground">{ s.Value }</span>
+							<span class="text-xs text-muted">{ s.Trend }</span>
+						</div>
+					}
+				}
+			}
+		</div>
+	}
+}

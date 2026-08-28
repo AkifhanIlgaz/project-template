@@ -1,0 +1,87 @@
+package views
+
+import (
+	"github.com/AkifhanIlgaz/project-template/internal/platform/session"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/alertdialog"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/button"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/card"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/layout"
+)
+
+// Settings is a demo page with made-up content (not a Placeholder), and
+// doubles as the toast system's worked example: Kaydet POSTs to the same
+// route and comes back with no body (hx-swap="none") but an HX-Trigger
+// toast (see dashboard_handler.go's SaveSettings and
+// internal/shared/htmx.Toast) — nothing on the page actually changes,
+// only the toast shows.
+templ Settings(u session.User, path string, csrfToken string) {
+	@layout.Dashboard(layout.DashboardProps{
+		Title:       "Ayarlar",
+		CSRFToken:   csrfToken,
+		Path:        path,
+		User:        u,
+		Crumbs:      []layout.Crumb{{Label: "Panel", Href: "/dashboard"}, {Label: "Ayarlar"}},
+		AppName:     appName,
+		NavItems:    navItems,
+		FooterItems: footerItems,
+	}) {
+		@card.Card(card.Props{}) {
+			@card.Header() {
+				@card.Title() {
+					Bildirim Tercihleri
+				}
+				@card.Description() {
+					Bu ayarlar hiçbir yere kaydedilmiyor — bu sayfa sadece toast sistemini denemek için.
+				}
+			}
+			@card.Footer() {
+				@button.Button(button.Props{
+					Attrs: templ.Attributes{"hx-post": "/dashboard/settings", "hx-swap": "none"},
+				}) {
+					Kaydet
+				}
+			}
+		}
+		@card.Card(card.Props{}, "border-danger/30") {
+			@card.Header() {
+				@card.Title() {
+					Tehlikeli Bölge
+				}
+				@card.Description() {
+					Hesabını kalıcı olarak siler. Bu, modal sistemini denemek için eklendi — silme işlemi gerçekleşmez.
+				}
+			}
+			@card.Footer() {
+				@alertdialog.AlertDialog() {
+					@button.Button(button.Props{Variant: button.VariantDangerSoft, Size: button.SizeSm}) {
+						Hesabı sil
+					}
+					@alertdialog.AlertDialogBackdrop(alertdialog.BackdropProps{IsDismissable: true}) {
+						@alertdialog.AlertDialogContainer(alertdialog.ContainerProps{}) {
+							@alertdialog.AlertDialogDialog() {
+								@alertdialog.AlertDialogIcon(alertdialog.IconProps{Status: alertdialog.StatusDanger})
+								@alertdialog.AlertDialogHeader() {
+									@alertdialog.AlertDialogHeading() {
+										Hesabını silmek istediğine emin misin?
+									}
+								}
+								@alertdialog.AlertDialogBody() {
+									<p>Bu işlem geri alınamaz. Hesabın ve tüm verilerin kalıcı olarak silinir.</p>
+								}
+								@alertdialog.AlertDialogFooter() {
+									@button.Button(button.Props{Variant: button.VariantGhost, Attrs: templ.Attributes{"slot": "close"}}) {
+										Vazgeç
+									}
+									@button.Button(button.Props{Variant: button.VariantDanger, Attrs: templ.Attributes{"slot": "close"}}) {
+										Hesabı sil
+									}
+								}
+								@alertdialog.AlertDialogCloseTrigger()
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/AkifhanIlgaz/project-template/internal/features/home/views"
 	"github.com/AkifhanIlgaz/project-template/internal/platform/csrf"
 	"github.com/AkifhanIlgaz/project-template/internal/platform/session"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/middleware"
 	"github.com/a-h/templ"
 	"github.com/gofiber/fiber/v3"
 )
@@ -18,8 +19,8 @@ func NewHandler() *Handler {
 }
 
 func (h *Handler) RegisterRoutes(app *fiber.App) {
-	app.Get("/login", h.Login)
-	app.Get("/me", h.Me)
+	app.Get("/login", middleware.UnauthenticatedLayout(), h.Login)
+	app.Get("/me", middleware.AuthenticatedLayout(), h.Me)
 }
 
 func (h *Handler) Login(c fiber.Ctx) error {
@@ -27,10 +28,7 @@ func (h *Handler) Login(c fiber.Ctx) error {
 }
 
 func (h *Handler) Me(c fiber.Ctx) error {
-	u, ok := session.GetCurrentUser(c)
-	if !ok {
-		return c.Redirect().To("/login")
-	}
+	u, _ := session.GetCurrentUser(c)
 
 	return render(c, views.Me(u, csrf.Token(c)))
 }

@@ -1,0 +1,35 @@
+package views
+
+import (
+	"github.com/AkifhanIlgaz/project-template/internal/platform/session"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/components/card"
+	"github.com/AkifhanIlgaz/project-template/internal/shared/layout"
+)
+
+// Dashboard demonstrates internal/shared/layout.Dashboard end to end: a
+// protected page rendered inside the sidebar+navbar shell. Clone this
+// template's content away once real pages exist — dashboard_nav.go's
+// navItems/appName are the part worth keeping and extending.
+templ Dashboard(u session.User, path string, csrfToken string) {
+	@layout.Dashboard(layout.DashboardProps{
+		Title:     "Panel",
+		CSRFToken: csrfToken,
+		Path:      path,
+		User:      u,
+		Crumbs:      dashboardCrumbs(),
+		AppName:     appName,
+		NavItems:    navItems,
+		FooterItems: footerItems,
+	}) {
+		@card.Card(card.Props{}) {
+			@card.Header() {
+				@card.Title() {
+					Hoş geldin, { u.Email }
+				}
+				@card.Description() {
+					Bu, kimliği doğrulanmış sidebar+navbar shell'ini gösteren örnek bir panel sayfasıdır.
+				}
+			}
+		}
+	}
+}
